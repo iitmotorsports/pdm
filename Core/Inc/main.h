@@ -57,6 +57,14 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define HSEN2_Pin GPIO_PIN_4
+#define HSEN2_GPIO_Port GPIOA
+#define HSEN1_Pin GPIO_PIN_7
+#define HSEN1_GPIO_Port GPIOA
+#define HSEN4_Pin GPIO_PIN_5
+#define HSEN4_GPIO_Port GPIOC
+#define HSEN3_Pin GPIO_PIN_2
+#define HSEN3_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
