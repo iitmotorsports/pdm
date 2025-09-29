@@ -1,0 +1,22 @@
+name: clang-format formatting
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+      - uses: actions/checkout@v2
+
+      - name: Install tooling
+        working-directory: ./
+        run: sudo apt update && sudo apt install clang-format
+
+      - name: Run formatting
+        working-directory: ./
+        run: find . -type f -name "*.cpp" -exec clang-format -i {} +
