@@ -67,7 +67,10 @@ void Error_Handler(void);
 #define HSEN3_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
-
+typedef struct {
+    GPIO_TypeDef *port;
+    uint16_t pin;
+} HSEN_Pin_t;
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

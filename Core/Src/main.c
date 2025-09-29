@@ -21,7 +21,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdbool.h>
+#include "gpio.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,7 +43,12 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+HSEN_Pin_t hsen_pins[4] = {
+    {HSEN1_GPIO_Port, HSEN1_Pin},
+    {HSEN2_GPIO_Port, HSEN2_Pin},
+    {HSEN3_GPIO_Port, HSEN3_Pin},
+    {HSEN4_GPIO_Port, HSEN4_Pin},
+};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -54,7 +60,13 @@ static void MX_GPIO_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+void write_to_pin(int hsen_num, bool state)
+{
+    int index = hsen_num - 1;
+    if (index < sizeof(hsen_pins) / sizeof(hsen_pins[0]) && index >= 0) {
+        HAL_GPIO_WritePin(hsen_pins[index].port, hsen_pins[index].pin, state ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    }
+}
 /* USER CODE END 0 */
 
 /**
