@@ -22,7 +22,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdbool.h>
-#include "gpio.h"
+#include "stm32g4xx_hal_tim.h"
+#include "CO_app_STM32.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -55,7 +56,22 @@ HSEN_Pin_t hsen_pins[4] = {
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 /* USER CODE BEGIN PFP */
+//will reformat later if prototypes are to be enforced
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
 
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM1) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+  // Handle CANOpen app interrupts
+  if (htim == canopenNodeSTM32->timerHandle) {
+      canopen_app_interrupt();
+  }
+  /* USER CODE END Callback 1 */
+}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -100,14 +116,53 @@ int main(void)
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
 
+  CAN_HandleTypeDef hcan;
+  hcan.Instance = CAN2;
+  hcan.Init.Prescaler = 21;
+  hcan.Init.Mode = CAN_MODE_NORMAL;
+  hcan.Init.SyncJumpWidth = CAN_SJW_2TQ;
+  hcan.Init.TimeSeg1 = CAN_BS1_13TQ;
+  hcan.Init.TimeSeg2 = CAN_BS2_2TQ;
+  hcan.Init.TimeTriggeredMode = DISABLE;
+  hcan.Init.AutoBusOff = ENABLE;
+  hcan.Init.AutoWakeUp = DISABLE;
+  hcan.Init.AutoRetransmission = DISABLE;
+  hcan.Init.ReceiveFifoLocked = ENABLE;
+  hcan.Init.TransmitFifoPriority = ENABLE;
+  if (HAL_CAN_Init(&hcan) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  TIM_HandleTypeDef htim17;
+  htim17.Instance = TIM17;
+  htim17.Init.Prescaler = 63;
+  htim17.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim17.Init.Period = 999;
+  htim17.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim17.Init.RepetitionCounter = 0;
+  htim17.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim17) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+
+  CANopenNodeSTM32 canOpenNodeSTM32;
+  canOpenNodeSTM32.CANHandle = &hcan;
+  canOpenNodeSTM32.HWInitFunction = MX_CAN_Init;
+  canOpenNodeSTM32.timerHandle = &htim17;
+  canOpenNodeSTM32.desiredNodeID = 29;
+  canOpenNodeSTM32.baudrate = 125;
+  canopen_app_init(&canOpenNodeSTM32);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+    canopen_app_process();
     /* USER CODE END WHILE */
-
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
