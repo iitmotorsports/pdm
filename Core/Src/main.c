@@ -22,7 +22,6 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdbool.h>
-#include "gpio.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -107,6 +106,26 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
+    HAL_GPIO_WritePin(USER_R_GPIO_Port, USER_R_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(USER_G_GPIO_Port, USER_G_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(USER_B_GPIO_Port, USER_B_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(HSEN1_GPIO_Port, HSEN1_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(HSEN2_GPIO_Port, HSEN2_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(HSEN3_GPIO_Port, HSEN3_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(HSEN4_GPIO_Port, HSEN4_Pin, GPIO_PIN_RESET);
+
+    HAL_Delay(500);
+    HAL_GPIO_WritePin(USER_R_GPIO_Port, USER_R_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(USER_G_GPIO_Port, USER_G_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(USER_B_GPIO_Port, USER_B_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(HSEN1_GPIO_Port, HSEN1_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(HSEN2_GPIO_Port, HSEN2_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(HSEN3_GPIO_Port, HSEN3_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(HSEN4_GPIO_Port, HSEN4_Pin, GPIO_PIN_SET);
+
+    HAL_Delay(500);
+
+
 
     /* USER CODE BEGIN 3 */
   }
@@ -166,32 +185,33 @@ static void MX_GPIO_Init(void)
   /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOF_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, HSEN2_Pin|HSEN1_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, USER_R_Pin|USER_G_Pin|USER_B_Pin|HSEN4_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(HSEN4_GPIO_Port, HSEN4_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, HSEN2_Pin|GPIO_PIN_5|HSEN1_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(HSEN3_GPIO_Port, HSEN3_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : HSEN2_Pin HSEN1_Pin */
-  GPIO_InitStruct.Pin = HSEN2_Pin|HSEN1_Pin;
+  /*Configure GPIO pins : USER_R_Pin USER_G_Pin USER_B_Pin HSEN4_Pin */
+  GPIO_InitStruct.Pin = USER_R_Pin|USER_G_Pin|USER_B_Pin|HSEN4_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : HSEN2_Pin PA5 HSEN1_Pin */
+  GPIO_InitStruct.Pin = HSEN2_Pin|GPIO_PIN_5|HSEN1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : HSEN4_Pin */
-  GPIO_InitStruct.Pin = HSEN4_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(HSEN4_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : HSEN3_Pin */
   GPIO_InitStruct.Pin = HSEN3_Pin;
