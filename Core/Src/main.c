@@ -49,6 +49,7 @@ I2C_HandleTypeDef hi2c3;
 I2C_HandleTypeDef hi2c4;
 
 /* USER CODE BEGIN PV */
+// Need to add each pin as they're created won't update automatically
 HSEN_Pin_t hsen_pins[4] = {
     {HSEN1_GPIO_Port, HSEN1_Pin},
     {HSEN2_GPIO_Port, HSEN2_Pin},
