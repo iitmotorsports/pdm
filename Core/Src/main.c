@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdbool.h>
+#include "CO_app_STM32.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -120,13 +121,19 @@ int main(void)
   MX_I2C4_Init();
   MX_TIM17_Init();
   /* USER CODE BEGIN 2 */
-
+    CANopenNodeSTM32 canopenNodeSTM32;
+    canopenNodeSTM32.CANHandle = &hfdcan1;
+    canopenNodeSTM32.HWInitFunction = MX_FDCAN1_Init;
+    canopenNodeSTM32.timerHandle = &htim17;
+    canopenNodeSTM32.desiredNodeID = 32;
+    canopenNodeSTM32.baudrate = 125;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+      canopen_app_process();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -550,7 +557,16 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+// in text but not video?
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+    if (htim->Instance == TIM17) {
+        HAL_IncTick();
+    }
 
+    if (htim == canopenNodeSTM32->timerHandle) {
+        canopen_app_interrupt();
+    }
+}
 /* USER CODE END 4 */
 
 /**
