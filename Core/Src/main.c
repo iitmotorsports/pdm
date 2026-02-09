@@ -23,6 +23,7 @@
 /* USER CODE BEGIN Includes */
 #include <stdbool.h>
 #include "CO_app_STM32.h"
+#include "OD.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -134,6 +135,7 @@ int main(void)
   while (1)
   {
       canopen_app_process();
+      OD_PERSIST_COMM.x6000_counter++;
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
