@@ -54,12 +54,14 @@ TIM_HandleTypeDef htim17;
 
 /* USER CODE BEGIN PV */
 // Need to add each pin as they're created won't update automatically
-HSEN_Pin_t hsen_pins[5] = {
+HSEN_Pin_t hsen_pins[7] = {
     {HSEN1_GPIO_Port, HSEN1_Pin},
     {HSEN2_GPIO_Port, HSEN2_Pin},
     {HSEN3_GPIO_Port, HSEN3_Pin},
     {HSEN4_GPIO_Port, HSEN4_Pin},
     {USER_R_GPIO_Port, USER_R_Pin},
+    {USER_G_GPIO_Port, USER_G_Pin},
+    {USER_B_GPIO_Port, USER_B_Pin},
 };
 /* USER CODE END PV */
 
@@ -139,9 +141,6 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-      // PICKUP: Code has been configured with STARTs just need to test
-      // ADDITIONAL STEPS within claude I have left a way of sending CAN every cycle
-      // Use that to verify CAN on the board does work and I didn't mess it up
       canopen_app_process();
       OD_PERSIST_COMM.x6000_counter++;
     /* USER CODE END WHILE */
