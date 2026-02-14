@@ -54,11 +54,12 @@ TIM_HandleTypeDef htim17;
 
 /* USER CODE BEGIN PV */
 // Need to add each pin as they're created won't update automatically
-HSEN_Pin_t hsen_pins[4] = {
+HSEN_Pin_t hsen_pins[5] = {
     {HSEN1_GPIO_Port, HSEN1_Pin},
     {HSEN2_GPIO_Port, HSEN2_Pin},
     {HSEN3_GPIO_Port, HSEN3_Pin},
     {HSEN4_GPIO_Port, HSEN4_Pin},
+    {USER_R_GPIO_Port, USER_R_Pin},
 };
 /* USER CODE END PV */
 
@@ -126,14 +127,21 @@ int main(void)
     canopenNodeSTM32.CANHandle = &hfdcan1;
     canopenNodeSTM32.HWInitFunction = MX_FDCAN1_Init;
     canopenNodeSTM32.timerHandle = &htim17;
-    canopenNodeSTM32.desiredNodeID = 32;
+    canopenNodeSTM32.desiredNodeID = 29;
     canopenNodeSTM32.baudrate = 125;
+    canopen_app_init(&canopenNodeSTM32);
+    HAL_FDCAN_Start(&hfdcan1);
+    HAL_TIM_Base_Start_IT(&htim17);
+    HAL_GPIO_WritePin(TERM_EN_GPIO_Port, TERM_EN_Pin, GPIO_PIN_SET);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+      // PICKUP: Code has been configured with STARTs just need to test
+      // ADDITIONAL STEPS within claude I have left a way of sending CAN every cycle
+      // Use that to verify CAN on the board does work and I didn't mess it up
       canopen_app_process();
       OD_PERSIST_COMM.x6000_counter++;
     /* USER CODE END WHILE */
@@ -559,15 +567,14 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-// in text but not video?
+// // in text but not video?
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     if (htim->Instance == TIM17) {
-        HAL_IncTick();
-    }
-
-    if (htim == canopenNodeSTM32->timerHandle) {
         canopen_app_interrupt();
     }
+    // HAL_GPIO_WritePin(USER_R_GPIO_Port, USER_R_Pin, GPIO_PIN_SET);
+    // HAL_GPIO_WritePin(USER_G_GPIO_Port, USER_G_Pin, GPIO_PIN_SET);
+    // HAL_GPIO_WritePin(USER_B_GPIO_Port, USER_B_Pin, GPIO_PIN_SET);
 }
 /* USER CODE END 4 */
 
