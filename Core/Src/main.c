@@ -129,11 +129,9 @@ int main(void)
     canopenNodeSTM32.CANHandle = &hfdcan1;
     canopenNodeSTM32.HWInitFunction = MX_FDCAN1_Init;
     canopenNodeSTM32.timerHandle = &htim17;
-    canopenNodeSTM32.desiredNodeID = 29;
+    canopenNodeSTM32.desiredNodeID = 29; // ADD THIS TO COMID TO GET TPDO ID
     canopenNodeSTM32.baudrate = 125;
     canopen_app_init(&canopenNodeSTM32);
-    HAL_FDCAN_Start(&hfdcan1);
-    HAL_TIM_Base_Start_IT(&htim17);
     HAL_GPIO_WritePin(TERM_EN_GPIO_Port, TERM_EN_Pin, GPIO_PIN_SET);
   /* USER CODE END 2 */
 
@@ -142,7 +140,8 @@ int main(void)
   while (1)
   {
       canopen_app_process();
-      OD_PERSIST_COMM.x6000_counter++;
+      OD_set_u32(OD_find(OD, 0x6000), 0x00, 123, false); // The correct way
+      // OD_PERSIST_COMM.x6000_counter++; // The simple way
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -603,7 +602,7 @@ void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+    printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
