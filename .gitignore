@@ -43,3 +43,6 @@
 
 # build
 /build/
+
+# Example CANOpen projects
+CANopenNode/example
