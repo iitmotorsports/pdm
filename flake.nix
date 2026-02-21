@@ -18,6 +18,7 @@
                         stlink
                         cmake
                         ninja
+                        can-utils
                     ];
                 };
             };
