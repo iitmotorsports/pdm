@@ -47,9 +47,30 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
 )
 
+# Add CANopenNode sources (excluding example/ folder)
+file(GLOB_RECURSE CANOPENNODE_SOURCES
+    "CANopenNode/*.c"
+)
+# Remove example folder files from the list
+list(FILTER CANOPENNODE_SOURCES EXCLUDE REGEX ".*example/.*")
+
+# Add CANopenNodeSTM32 sources
+file(GLOB_RECURSE CANOPENNODESTM32_SOURCES
+    "CANopenNode_STM32/*.c"
+)
+
+# Add sources to executable
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE
+    # Add user sources here
+    ${CANOPENNODE_SOURCES}
+    ${CANOPENNODESTM32_SOURCES}
+)
+
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
+    ${CMAKE_CURRENT_SOURCE_DIR}/CANopenNode
+    ${CMAKE_CURRENT_SOURCE_DIR}/CANopenNode_STM32
 )
 
 # Add project symbols (macros)

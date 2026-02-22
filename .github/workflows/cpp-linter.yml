@@ -18,6 +18,7 @@ jobs:
           style: 'file'
           tidy-checks: ''
           thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
+          ignore: 'CANopenNode/'
       - name: Fail fast?!
         if: steps.linter.outputs.checks-failed > 0
         run: exit 1
