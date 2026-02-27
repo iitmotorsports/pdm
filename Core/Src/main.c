@@ -140,8 +140,21 @@ int main(void)
   while (1)
   {
       canopen_app_process();
-      OD_set_u32(OD_find(OD, 0x6000), 0x00, 123, false); // The correct way
+      // OD_set_u32(OD_find(OD, 0x6000), 0x00, 123, false); // The correct way
       // OD_PERSIST_COMM.x6000_counter++; // The simple way
+      // fan speed tPDOs
+      OD_PERSIST_COMM.x2101_W_fan_speed_1 = 1;
+      OD_PERSIST_COMM.x2102_W_fan_speed_2 = 2;
+      OD_PERSIST_COMM.x2103_W_fan_speed_3 = 3;
+      OD_PERSIST_COMM.x2104_W_fan_speed_4 = 4;
+      OD_PERSIST_COMM.x2105_W_fan_speed_5 = 5;
+      OD_PERSIST_COMM.x2106_W_fan_speed_6 = 6;
+      // rPDOs are missing because I have left them invalid until I can actually test
+      // high-side driver tPDOs
+      OD_PERSIST_COMM.x2201_hsd1 = false;
+      OD_PERSIST_COMM.x2202_hsd2 = false;
+      OD_PERSIST_COMM.x2203_hsd3 = false;
+      OD_PERSIST_COMM.x2204_hsd4 = false;
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
