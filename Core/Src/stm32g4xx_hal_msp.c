@@ -17,7 +17,6 @@
   ******************************************************************************
   */
 /* USER CODE END Header */
-
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 /* USER CODE BEGIN Includes */
@@ -334,8 +333,22 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
     /* USER CODE BEGIN I2C3_MspInit 1 */
 
     /* USER CODE END I2C3_MspInit 1 */
+
   }
-  else if(hi2c->Instance==I2C4)
+
+}
+
+/**
+  * @brief SMBUS MSP Initialization
+  * This function configures the hardware resources used in this example
+  * @param hsmbus: SMBUS handle pointer
+  * @retval None
+  */
+void HAL_SMBUS_MspInit(SMBUS_HandleTypeDef* hsmbus)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+  if(hsmbus->Instance==I2C4)
   {
     /* USER CODE BEGIN I2C4_MspInit 0 */
 
@@ -372,6 +385,7 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
     /* USER CODE BEGIN I2C4_MspInit 1 */
 
     /* USER CODE END I2C4_MspInit 1 */
+
   }
 
 }
@@ -404,7 +418,18 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* hi2c)
 
     /* USER CODE END I2C3_MspDeInit 1 */
   }
-  else if(hi2c->Instance==I2C4)
+
+}
+
+/**
+  * @brief SMBUS MSP De-Initialization
+  * This function freeze the hardware resources used in this example
+  * @param hsmbus: SMBUS handle pointer
+  * @retval None
+  */
+void HAL_SMBUS_MspDeInit(SMBUS_HandleTypeDef* hsmbus)
+{
+  if(hsmbus->Instance==I2C4)
   {
     /* USER CODE BEGIN I2C4_MspDeInit 0 */
 
