@@ -74,7 +74,8 @@ set(MX_LINK_DIRS
 set(MX_LINK_LIBS 
     STM32_Drivers
     ${TOOLCHAIN_LINK_LIBRARIES}
-    SMBus_PMBus_Stack	
+    SMBus_PMBus_Stack
+	
 )
 # Interface library for includes and symbols
 add_library(stm32cubemx INTERFACE)

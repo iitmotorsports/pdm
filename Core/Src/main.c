@@ -22,6 +22,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdbool.h>
+#include "CO_app_STM32.h"
+#include "OD.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -51,11 +53,15 @@ SMBUS_HandleTypeDef hsmbus4;
 TIM_HandleTypeDef htim17;
 
 /* USER CODE BEGIN PV */
-HSEN_Pin_t hsen_pins[4] = {
+// Need to add each pin as they're created won't update automatically
+HSEN_Pin_t hsen_pins[7] = {
     {HSEN1_GPIO_Port, HSEN1_Pin},
     {HSEN2_GPIO_Port, HSEN2_Pin},
     {HSEN3_GPIO_Port, HSEN3_Pin},
     {HSEN4_GPIO_Port, HSEN4_Pin},
+    {USER_R_GPIO_Port, USER_R_Pin},
+    {USER_G_GPIO_Port, USER_G_Pin},
+    {USER_B_GPIO_Port, USER_B_Pin},
 };
 /* USER CODE END PV */
 
@@ -119,13 +125,23 @@ int main(void)
   MX_I2C4_SMBUS_Init();
   MX_TIM17_Init();
   /* USER CODE BEGIN 2 */
-
+    CANopenNodeSTM32 canopenNodeSTM32;
+    canopenNodeSTM32.CANHandle = &hfdcan1;
+    canopenNodeSTM32.HWInitFunction = MX_FDCAN1_Init;
+    canopenNodeSTM32.timerHandle = &htim17;
+    canopenNodeSTM32.desiredNodeID = 29; // ADD THIS TO COMID TO GET TPDO ID
+    canopenNodeSTM32.baudrate = 125;
+    canopen_app_init(&canopenNodeSTM32);
+    HAL_GPIO_WritePin(TERM_EN_GPIO_Port, TERM_EN_Pin, GPIO_PIN_SET);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+      canopen_app_process();
+      OD_set_u32(OD_find(OD, 0x6000), 0x00, 123, false); // The correct way
+      // OD_PERSIST_COMM.x6000_counter++; // The simple way
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -545,7 +561,15 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+// // in text but not video?
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+    if (htim->Instance == TIM17) {
+        canopen_app_interrupt();
+    }
+    // HAL_GPIO_WritePin(USER_R_GPIO_Port, USER_R_Pin, GPIO_PIN_SET);
+    // HAL_GPIO_WritePin(USER_G_GPIO_Port, USER_G_Pin, GPIO_PIN_SET);
+    // HAL_GPIO_WritePin(USER_B_GPIO_Port, USER_B_Pin, GPIO_PIN_SET);
+}
 /* USER CODE END 4 */
 
 /**
@@ -574,7 +598,7 @@ void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+    printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
