@@ -48,7 +48,7 @@ ADC_HandleTypeDef hadc2;
 FDCAN_HandleTypeDef hfdcan1;
 
 I2C_HandleTypeDef hi2c3;
-I2C_HandleTypeDef hi2c4;
+SMBUS_HandleTypeDef hsmbus4;
 
 TIM_HandleTypeDef htim17;
 
@@ -72,7 +72,7 @@ static void MX_ADC1_Init(void);
 static void MX_ADC2_Init(void);
 static void MX_FDCAN1_Init(void);
 static void MX_I2C3_Init(void);
-static void MX_I2C4_Init(void);
+static void MX_I2C4_SMBUS_Init(void);
 static void MX_TIM17_Init(void);
 /* USER CODE BEGIN PFP */
 
@@ -122,7 +122,7 @@ int main(void)
   MX_ADC2_Init();
   MX_FDCAN1_Init();
   MX_I2C3_Init();
-  MX_I2C4_Init();
+  MX_I2C4_SMBUS_Init();
   MX_TIM17_Init();
   /* USER CODE BEGIN 2 */
     CANopenNodeSTM32 canopenNodeSTM32;
@@ -158,6 +158,12 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    HAL_GPIO_WritePin(HSEN1_GPIO_Port, HSEN1_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(HSEN2_GPIO_Port, HSEN2_Pin, GPIO_PIN_SET);
+      HAL_Delay(250);
+      HAL_GPIO_WritePin(HSEN1_GPIO_Port, HSEN1_Pin, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(HSEN2_GPIO_Port, HSEN2_Pin, GPIO_PIN_RESET);
+      HAL_Delay(250);
   }
   /* USER CODE END 3 */
 }
@@ -431,7 +437,7 @@ static void MX_I2C3_Init(void)
   * @param None
   * @retval None
   */
-static void MX_I2C4_Init(void)
+static void MX_I2C4_SMBUS_Init(void)
 {
 
   /* USER CODE BEGIN I2C4_Init 0 */
@@ -441,30 +447,20 @@ static void MX_I2C4_Init(void)
   /* USER CODE BEGIN I2C4_Init 1 */
 
   /* USER CODE END I2C4_Init 1 */
-  hi2c4.Instance = I2C4;
-  hi2c4.Init.Timing = 0x10B17DB5;
-  hi2c4.Init.OwnAddress1 = 0;
-  hi2c4.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  hi2c4.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  hi2c4.Init.OwnAddress2 = 0;
-  hi2c4.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
-  hi2c4.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c4.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&hi2c4) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure Analogue filter
-  */
-  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c4, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure Digital filter
-  */
-  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c4, 0) != HAL_OK)
+  hsmbus4.Instance = I2C4;
+  hsmbus4.Init.Timing = 0x10B17DB5;
+  hsmbus4.Init.AnalogFilter = SMBUS_ANALOGFILTER_ENABLE;
+  hsmbus4.Init.OwnAddress1 = 2;
+  hsmbus4.Init.AddressingMode = SMBUS_ADDRESSINGMODE_7BIT;
+  hsmbus4.Init.DualAddressMode = SMBUS_DUALADDRESS_DISABLE;
+  hsmbus4.Init.OwnAddress2 = 0;
+  hsmbus4.Init.OwnAddress2Masks = SMBUS_OA2_NOMASK;
+  hsmbus4.Init.GeneralCallMode = SMBUS_GENERALCALL_DISABLE;
+  hsmbus4.Init.NoStretchMode = SMBUS_NOSTRETCH_DISABLE;
+  hsmbus4.Init.PacketErrorCheckMode = SMBUS_PEC_DISABLE;
+  hsmbus4.Init.PeripheralMode = SMBUS_PERIPHERAL_MODE_SMBUS_SLAVE;
+  hsmbus4.Init.SMBusTimeout = 0x000080C3;
+  if (HAL_SMBUS_Init(&hsmbus4) != HAL_OK)
   {
     Error_Handler();
   }
