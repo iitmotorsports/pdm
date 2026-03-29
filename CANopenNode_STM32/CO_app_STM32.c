@@ -41,8 +41,8 @@ CANopenNodeSTM32*
 
 /* default values for CO_CANopenInit() */
 #define NMT_CONTROL                                                                                                    \
-    CO_NMT_STARTUP_TO_OPERATIONAL                                                                                      \
-    | CO_NMT_ERR_ON_ERR_REG | CO_ERR_REG_GENERIC_ERR | CO_ERR_REG_COMMUNICATION
+    (CO_NMT_STARTUP_TO_OPERATIONAL                                                                                      \
+    | CO_NMT_ERR_ON_ERR_REG | CO_ERR_REG_GENERIC_ERR | CO_ERR_REG_COMMUNICATION)
 #define FIRST_HB_TIME        500
 #define SDO_SRV_TIMEOUT_TIME 1000
 #define SDO_CLI_TIMEOUT_TIME 500
@@ -62,15 +62,10 @@ extern SMBUS_HandleTypeDef hsmbus4;
 typedef struct {
     GPIO_TypeDef *port;
     uint16_t      pin;
-    uint8_t         *od_value;
+    uint8_t      *od_value;
 } gpio_od_config_t;
 
-static const gpio_od_config_t gpio_configs[] = {
-    {HSEN1_GPIO_Port, HSEN1_Pin, &OD_PERSIST_COMM.x2200_hsd_1_w},
-    {HSEN2_GPIO_Port, HSEN2_Pin, &OD_PERSIST_COMM.x2201_hsd_2_w},
-    {HSEN3_GPIO_Port, HSEN3_Pin, &OD_PERSIST_COMM.x2202_hsd_3_w},
-    {HSEN4_GPIO_Port, HSEN4_Pin, &OD_PERSIST_COMM.x2203_hsd_4_w},
-};
+static  gpio_od_config_t gpio_configs[4];
 
 static ODR_t gpio_callback(OD_stream_t *stream, const void *buf, const OD_size_t size, OD_size_t *countWritten) {
     const ODR_t result = OD_writeOriginal(stream, buf, size, countWritten);
@@ -85,24 +80,17 @@ static ODR_t gpio_callback(OD_stream_t *stream, const void *buf, const OD_size_t
 static OD_extension_t gpio_extensions[sizeof(gpio_configs) / sizeof(gpio_configs[0])];
 
 typedef struct {
+    uint8_t address;
     uint8_t *od_value;
 } fan_config_t;
 
-static const fan_config_t fan_configs[] = {
-    { &OD_PERSIST_COMM.x2100_fan_1_w},
-    { &OD_PERSIST_COMM.x2101_fan_2_w},
-    { &OD_PERSIST_COMM.x2102_fan_3_w},
-    { &OD_PERSIST_COMM.x2103_fan_4_w},
-    { &OD_PERSIST_COMM.x2104_fan_5_w},
-    { &OD_PERSIST_COMM.x2105_fan_6_w},
-};
+static fan_config_t fan_configs[6];
 
 static ODR_t fan_callback(OD_stream_t *stream, const void *buf, const OD_size_t size, OD_size_t *countWritten) {
     const ODR_t result = OD_writeOriginal(stream, buf, size, countWritten);
     if (result == ODR_OK) {
         const fan_config_t *cfg = stream->object;
-        // FIXME: fill in the fan controller address because its probably not 0x01
-        HAL_SMBUS_Master_Transmit_IT(&hsmbus4, 0x01, cfg->od_value, 1, SMBUS_LAST_FRAME_NO_PEC);
+        HAL_SMBUS_Master_Transmit_IT(&hsmbus4, cfg->address << 1, cfg->od_value, 1, SMBUS_LAST_FRAME_NO_PEC);
     }
     return result;
 }
@@ -122,6 +110,11 @@ canopen_app_init(CANopenNodeSTM32* _canopenNodeSTM32) {
         OD_ENTRY_H2203,
     };
 
+    gpio_configs[0] = (gpio_od_config_t){HSEN1_GPIO_Port, HSEN1_Pin, &OD_PERSIST_COMM.x2200_hsd_1_w};
+    gpio_configs[1] = (gpio_od_config_t){HSEN2_GPIO_Port, HSEN2_Pin, &OD_PERSIST_COMM.x2201_hsd_2_w};
+    gpio_configs[2] = (gpio_od_config_t){HSEN3_GPIO_Port, HSEN3_Pin, &OD_PERSIST_COMM.x2202_hsd_3_w};
+    gpio_configs[3] = (gpio_od_config_t){HSEN4_GPIO_Port, HSEN4_Pin, &OD_PERSIST_COMM.x2203_hsd_4_w};
+
     for(int i = 0; i < sizeof(gpio_entries) / sizeof(gpio_entries[0]); i++) {
         gpio_extensions[i].object = &gpio_configs[i];
         gpio_extensions[i].read = NULL;
@@ -137,6 +130,13 @@ canopen_app_init(CANopenNodeSTM32* _canopenNodeSTM32) {
         OD_ENTRY_H2104,
         OD_ENTRY_H2105,
     };
+
+    fan_configs[0] = (fan_config_t) {0x2e, &OD_PERSIST_COMM.x2100_fan_1_w};
+    fan_configs[1] = (fan_config_t) {0x2e, &OD_PERSIST_COMM.x2101_fan_2_w};
+    fan_configs[2] = (fan_config_t) {0x2e, &OD_PERSIST_COMM.x2102_fan_3_w};
+    fan_configs[3] = (fan_config_t) {0x2f, &OD_PERSIST_COMM.x2103_fan_4_w};
+    fan_configs[4] = (fan_config_t) {0x2f, &OD_PERSIST_COMM.x2104_fan_5_w};
+    fan_configs[5] = (fan_config_t) {0x2f, &OD_PERSIST_COMM.x2105_fan_6_w};
 
     for(int i = 0; i < sizeof(fan_entries) / sizeof(fan_entries[0]); i++) {
         gpio_extensions[i].object = &fan_configs[i];
