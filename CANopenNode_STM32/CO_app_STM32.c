@@ -59,6 +59,23 @@ CO_ReturnError_t err;
 // External references
 extern SMBUS_HandleTypeDef hsmbus4;
 
+// Constants
+static const uint16_t MAX_FAN_SPEED = 5000; // FIXME: Replace with actual fan speed
+
+// Helper functions
+
+// Encode RPM to byte for CAN transmission
+uint8_t rpm_to_byte(const uint16_t rpm)
+{
+    return (uint8_t)((rpm * 255U) / MAX_FAN_SPEED);
+}
+
+// Decode byte back to RPM
+uint16_t byte_to_rpm(const uint8_t value)
+{
+    return (uint16_t)((value * MAX_FAN_SPEED) / 255U);
+}
+
 typedef struct {
     GPIO_TypeDef *port;
     uint16_t      pin;
@@ -70,8 +87,8 @@ static  gpio_od_config_t gpio_configs[4];
 static ODR_t gpio_callback(OD_stream_t *stream, const void *buf, const OD_size_t size, OD_size_t *countWritten) {
     const ODR_t result = OD_writeOriginal(stream, buf, size, countWritten);
     if (result == ODR_OK) {
-        const gpio_od_config_t *cfg = stream->object;
-        HAL_GPIO_WritePin(cfg->port, cfg->pin, *cfg->od_value ? GPIO_PIN_SET : GPIO_PIN_RESET);
+        const gpio_od_config_t *cfg = stream -> object;
+        HAL_GPIO_WritePin(cfg -> port, cfg -> pin, *cfg -> od_value ? GPIO_PIN_SET : GPIO_PIN_RESET);
     }
     return result;
 }
@@ -80,7 +97,37 @@ static ODR_t gpio_callback(OD_stream_t *stream, const void *buf, const OD_size_t
 static OD_extension_t gpio_extensions[sizeof(gpio_configs) / sizeof(gpio_configs[0])];
 
 typedef struct {
+    uint16_t controller_addr;
+    uint8_t  tx_buf[4];
+    bool pending;
+} smbus_fan_job_t;
+
+static smbus_fan_job_t pending_fan_jobs[6];
+
+// FIXME: For now this is how I'm going to do this but there has to be a better way
+void smbus_queue_process(void)
+{
+    if (HAL_SMBUS_GetState(&hsmbus4) != HAL_SMBUS_STATE_READY)
+    {
+        return;
+    }
+
+    for (size_t i = 0U; i < 6U; i++)
+    {
+        if (pending_fan_jobs[i].pending)
+        {
+            pending_fan_jobs[i].pending = false;
+            HAL_SMBUS_Master_Transmit_IT(&hsmbus4, pending_fan_jobs[i].controller_addr, pending_fan_jobs[i].tx_buf, 4U,SMBUS_LAST_FRAME_NO_PEC);
+            return;
+        }
+    }
+}
+
+typedef struct {
+    uint8_t fan_num;
     uint8_t address;
+    uint8_t low_addr;
+    uint8_t high_addr;
     uint8_t *od_value;
 } fan_config_t;
 
@@ -90,7 +137,21 @@ static ODR_t fan_callback(OD_stream_t *stream, const void *buf, const OD_size_t 
     const ODR_t result = OD_writeOriginal(stream, buf, size, countWritten);
     if (result == ODR_OK) {
         const fan_config_t *cfg = stream->object;
-        HAL_SMBUS_Master_Transmit_IT(&hsmbus4, cfg->address << 1, cfg->od_value, 1, SMBUS_LAST_FRAME_NO_PEC);
+        const uint16_t rpm = byte_to_rpm(*cfg->od_value);
+        const uint16_t count = (uint16_t)(7864320U / rpm);
+        const uint8_t low  = (uint8_t)((count & 0x1FU) << 3U); // Lower 5 bits [4:0] shifted in accordance with 5.17 in datasheet
+        const uint8_t high = (uint8_t)(count >> 5U); // Upper 8 bits [12:5]
+
+        pending_fan_jobs[cfg->fan_num-1] = (smbus_fan_job_t) {
+            .controller_addr = cfg->address,
+            .tx_buf = {
+                cfg -> low_addr,
+                low,
+                cfg -> high_addr,
+                high,
+            },
+            .pending = true
+        };
     }
     return result;
 }
@@ -115,11 +176,27 @@ canopen_app_init(CANopenNodeSTM32* _canopenNodeSTM32) {
     gpio_configs[2] = (gpio_od_config_t){HSEN3_GPIO_Port, HSEN3_Pin, &OD_PERSIST_COMM.x2202_hsd_3_w};
     gpio_configs[3] = (gpio_od_config_t){HSEN4_GPIO_Port, HSEN4_Pin, &OD_PERSIST_COMM.x2203_hsd_4_w};
 
-    for(int i = 0; i < sizeof(gpio_entries) / sizeof(gpio_entries[0]); i++) {
+    for(size_t i = 0; i < sizeof(gpio_entries) / sizeof(gpio_entries[0]); i++) {
         gpio_extensions[i].object = &gpio_configs[i];
         gpio_extensions[i].read = NULL;
         gpio_extensions[i].write = gpio_callback;
         OD_extension_init(gpio_entries[i], &gpio_extensions[i]);
+    }
+
+
+    // Enable RPM control for all fans on both controllers
+    const uint8_t k_fan_config = 0x80U | 0x2BU;
+    const uint8_t k_fan_config_regs[] = {0x32U, 0x42U, 0x52U};
+    const uint16_t k_controller_addrs[] = {0x2EU << 1, 0x2FU << 1};
+
+    for (size_t ctrl = 0U; ctrl < 2U; ctrl++)
+    {
+        for (size_t fan = 0U; fan < 3U; fan++)
+        {
+            uint8_t tx_buf[] = {k_fan_config_regs[fan], k_fan_config};
+            HAL_SMBUS_Master_Transmit_IT(&hsmbus4, k_controller_addrs[ctrl], tx_buf,2U, SMBUS_LAST_FRAME_NO_PEC);
+            while (HAL_SMBUS_GetState(&hsmbus4) != HAL_SMBUS_STATE_READY) {}
+        }
     }
 
     OD_entry_t *fan_entries[] = {
@@ -131,17 +208,17 @@ canopen_app_init(CANopenNodeSTM32* _canopenNodeSTM32) {
         OD_ENTRY_H2105,
     };
 
-    fan_configs[0] = (fan_config_t) {0x2e, &OD_PERSIST_COMM.x2100_fan_1_w};
-    fan_configs[1] = (fan_config_t) {0x2e, &OD_PERSIST_COMM.x2101_fan_2_w};
-    fan_configs[2] = (fan_config_t) {0x2e, &OD_PERSIST_COMM.x2102_fan_3_w};
-    fan_configs[3] = (fan_config_t) {0x2f, &OD_PERSIST_COMM.x2103_fan_4_w};
-    fan_configs[4] = (fan_config_t) {0x2f, &OD_PERSIST_COMM.x2104_fan_5_w};
-    fan_configs[5] = (fan_config_t) {0x2f, &OD_PERSIST_COMM.x2105_fan_6_w};
+    fan_configs[0] = (fan_config_t) {1, 0x2EU, 0x3CU, 0x3DU, &OD_PERSIST_COMM.x2100_fan_1_w};
+    fan_configs[1] = (fan_config_t) {2, 0x2EU, 0x4CU, 0x4DU, &OD_PERSIST_COMM.x2101_fan_2_w};
+    fan_configs[2] = (fan_config_t) {3, 0x2EU, 0x5CU, 0x5DU, &OD_PERSIST_COMM.x2102_fan_3_w};
+    fan_configs[3] = (fan_config_t) {4, 0x2FU, 0x3CU, 0x3DU, &OD_PERSIST_COMM.x2103_fan_4_w};
+    fan_configs[4] = (fan_config_t) {5, 0x2FU, 0x4CU, 0x4DU, &OD_PERSIST_COMM.x2104_fan_5_w};
+    fan_configs[5] = (fan_config_t) {6, 0x2FU, 0x5CU, 0x5DU, &OD_PERSIST_COMM.x2105_fan_6_w};
 
-    for(int i = 0; i < sizeof(fan_entries) / sizeof(fan_entries[0]); i++) {
-        gpio_extensions[i].object = &fan_configs[i];
-        gpio_extensions[i].read = NULL;
-        gpio_extensions[i].write = fan_callback;
+    for(size_t i = 0U; i < sizeof(fan_entries) / sizeof(fan_entries[0]); i++) {
+        fan_extensions[i].object = &fan_configs[i];
+        fan_extensions[i].read = NULL;
+        fan_extensions[i].write = fan_callback;
         OD_extension_init(fan_entries[i], &fan_extensions[i]);
     }
 
@@ -286,6 +363,8 @@ void
 canopen_app_process() {
     /* loop for normal program execution ******************************************/
     /* get time difference since last function call */
+    smbus_queue_process();
+
     time_current = HAL_GetTick();
 
     if ((time_current - time_old) > 0) { // Make sure more than 1ms elapsed
