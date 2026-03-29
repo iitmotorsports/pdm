@@ -56,29 +56,58 @@ CO_t* CO = NULL; /* CANopen object */
 uint32_t time_old, time_current;
 CO_ReturnError_t err;
 
+// External references
+extern SMBUS_HandleTypeDef hsmbus4;
+
 typedef struct {
     GPIO_TypeDef *port;
     uint16_t      pin;
     uint8_t         *od_value;
 } gpio_od_config_t;
 
-static gpio_od_config_t gpio_configs[] = {
+static const gpio_od_config_t gpio_configs[] = {
     {HSEN1_GPIO_Port, HSEN1_Pin, &OD_PERSIST_COMM.x2200_hsd_1_w},
     {HSEN2_GPIO_Port, HSEN2_Pin, &OD_PERSIST_COMM.x2201_hsd_2_w},
     {HSEN3_GPIO_Port, HSEN3_Pin, &OD_PERSIST_COMM.x2202_hsd_3_w},
     {HSEN4_GPIO_Port, HSEN4_Pin, &OD_PERSIST_COMM.x2203_hsd_4_w},
 };
 
-static ODR_t gpio_callback(OD_stream_t *stream, const void *buf, OD_size_t size, OD_size_t *countWritten) {
+static ODR_t gpio_callback(OD_stream_t *stream, const void *buf, const OD_size_t size, OD_size_t *countWritten) {
     const ODR_t result = OD_writeOriginal(stream, buf, size, countWritten);
     if (result == ODR_OK) {
-        gpio_od_config_t *cfg = stream->object;
+        const gpio_od_config_t *cfg = stream->object;
         HAL_GPIO_WritePin(cfg->port, cfg->pin, *cfg->od_value ? GPIO_PIN_SET : GPIO_PIN_RESET);
     }
     return result;
 }
 
-static OD_extension_t gpio_extensions[4];
+
+static OD_extension_t gpio_extensions[sizeof(gpio_configs) / sizeof(gpio_configs[0])];
+
+typedef struct {
+    uint8_t *od_value;
+} fan_config_t;
+
+static const fan_config_t fan_configs[] = {
+    { &OD_PERSIST_COMM.x2100_fan_1_w},
+    { &OD_PERSIST_COMM.x2101_fan_2_w},
+    { &OD_PERSIST_COMM.x2102_fan_3_w},
+    { &OD_PERSIST_COMM.x2103_fan_4_w},
+    { &OD_PERSIST_COMM.x2104_fan_5_w},
+    { &OD_PERSIST_COMM.x2105_fan_6_w},
+};
+
+static ODR_t fan_callback(OD_stream_t *stream, const void *buf, const OD_size_t size, OD_size_t *countWritten) {
+    const ODR_t result = OD_writeOriginal(stream, buf, size, countWritten);
+    if (result == ODR_OK) {
+        const fan_config_t *cfg = stream->object;
+        // FIXME: fill in the fan controller address because its probably not 0x01
+        HAL_SMBUS_Master_Transmit_IT(&hsmbus4, 0x01, cfg->od_value, 1, SMBUS_LAST_FRAME_NO_PEC);
+    }
+    return result;
+}
+
+static OD_extension_t fan_extensions[sizeof(fan_configs) / sizeof(fan_configs[0])];
 
 /* This function will basically setup the CANopen node */
 int
@@ -86,19 +115,36 @@ canopen_app_init(CANopenNodeSTM32* _canopenNodeSTM32) {
     // Keep a copy global reference of canOpenSTM32 Object
     canopenNodeSTM32 = _canopenNodeSTM32;
 
-    OD_entry_t *entries[] = {
+    OD_entry_t *gpio_entries[] = {
         OD_ENTRY_H2200,
         OD_ENTRY_H2201,
         OD_ENTRY_H2202,
         OD_ENTRY_H2203,
     };
 
-    for(int i = 0; i < sizeof(entries) / sizeof(entries[0]); i++) {
+    for(int i = 0; i < sizeof(gpio_entries) / sizeof(gpio_entries[0]); i++) {
         gpio_extensions[i].object = &gpio_configs[i];
         gpio_extensions[i].read = NULL;
         gpio_extensions[i].write = gpio_callback;
-        OD_extension_init(entries[i], &gpio_extensions[i]);
+        OD_extension_init(gpio_entries[i], &gpio_extensions[i]);
     }
+
+    OD_entry_t *fan_entries[] = {
+        OD_ENTRY_H2100,
+        OD_ENTRY_H2101,
+        OD_ENTRY_H2102,
+        OD_ENTRY_H2103,
+        OD_ENTRY_H2104,
+        OD_ENTRY_H2105,
+    };
+
+    for(int i = 0; i < sizeof(fan_entries) / sizeof(fan_entries[0]); i++) {
+        gpio_extensions[i].object = &fan_configs[i];
+        gpio_extensions[i].read = NULL;
+        gpio_extensions[i].write = fan_callback;
+        OD_extension_init(fan_entries[i], &fan_extensions[i]);
+    }
+
 
 #if (CO_CONFIG_STORAGE) & CO_CONFIG_STORAGE_ENABLE
     static CO_storage_t storage;
