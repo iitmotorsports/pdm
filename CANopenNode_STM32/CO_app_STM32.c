@@ -37,7 +37,7 @@ CANopenNodeSTM32*
     canopenNodeSTM32; // It will be set by canopen_app_init and will be used across app to get access to CANOpen objects
 
 /* Printf function of CanOpen app */
-#define log_printf(macropar_message, ...) printf(macropar_message, ##__VA_ARGS__)
+#define log_printf(macropar_message, ...) printf(macropar_message, ## __VA_ARGS__)
 
 /* default values for CO_CANopenInit() */
 #define NMT_CONTROL                                                                                                    \
@@ -56,12 +56,49 @@ CO_t* CO = NULL; /* CANopen object */
 uint32_t time_old, time_current;
 CO_ReturnError_t err;
 
+typedef struct {
+    GPIO_TypeDef *port;
+    uint16_t      pin;
+    uint8_t         *od_value;
+} gpio_od_config_t;
+
+static gpio_od_config_t gpio_configs[] = {
+    {HSEN1_GPIO_Port, HSEN1_Pin, &OD_PERSIST_COMM.x2200_hsd_1_w},
+    {HSEN2_GPIO_Port, HSEN2_Pin, &OD_PERSIST_COMM.x2201_hsd_2_w},
+    {HSEN3_GPIO_Port, HSEN3_Pin, &OD_PERSIST_COMM.x2202_hsd_3_w},
+    {HSEN4_GPIO_Port, HSEN4_Pin, &OD_PERSIST_COMM.x2203_hsd_4_w},
+};
+
+static ODR_t gpio_callback(OD_stream_t *stream, const void *buf, OD_size_t size, OD_size_t *countWritten) {
+    const ODR_t result = OD_writeOriginal(stream, buf, size, countWritten);
+    if (result == ODR_OK) {
+        gpio_od_config_t *cfg = stream->object;
+        HAL_GPIO_WritePin(cfg->port, cfg->pin, *cfg->od_value ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    }
+    return result;
+}
+
+static OD_extension_t gpio_extensions[4];
+
 /* This function will basically setup the CANopen node */
 int
 canopen_app_init(CANopenNodeSTM32* _canopenNodeSTM32) {
-
     // Keep a copy global reference of canOpenSTM32 Object
     canopenNodeSTM32 = _canopenNodeSTM32;
+
+    OD_entry_t *entries[] = {
+        OD_ENTRY_H2200,
+        OD_ENTRY_H2201,
+        OD_ENTRY_H2202,
+        OD_ENTRY_H2203,
+    };
+
+    for(int i = 0; i < sizeof(entries) / sizeof(entries[0]); i++) {
+        gpio_extensions[i].object = &gpio_configs[i];
+        gpio_extensions[i].read = NULL;
+        gpio_extensions[i].write = gpio_callback;
+        OD_extension_init(entries[i], &gpio_extensions[i]);
+    }
 
 #if (CO_CONFIG_STORAGE) & CO_CONFIG_STORAGE_ENABLE
     static CO_storage_t storage;
