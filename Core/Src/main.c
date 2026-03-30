@@ -18,12 +18,14 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdbool.h>
 #include "CO_app_STM32.h"
 #include "OD.h"
+#include "smbus.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -52,6 +54,27 @@ SMBUS_HandleTypeDef hsmbus4;
 
 TIM_HandleTypeDef htim17;
 
+/* Definitions for smbus_task */
+osThreadId_t smbus_taskHandle;
+const osThreadAttr_t smbus_task_attributes = {
+  .name = "smbus_task",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128 * 4
+};
+/* Definitions for read_fans */
+osThreadId_t read_fansHandle;
+const osThreadAttr_t read_fans_attributes = {
+  .name = "read_fans",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128 * 4
+};
+/* Definitions for canopen_task */
+osThreadId_t canopen_taskHandle;
+const osThreadAttr_t canopen_task_attributes = {
+  .name = "canopen_task",
+  .priority = (osPriority_t) osPriorityHigh,
+  .stack_size = 128 * 4
+};
 /* USER CODE BEGIN PV */
 // Need to add each pin as they're created won't update automatically
 HSEN_Pin_t hsen_pins[7] = {
@@ -63,6 +86,9 @@ HSEN_Pin_t hsen_pins[7] = {
     {USER_G_GPIO_Port, USER_G_Pin},
     {USER_B_GPIO_Port, USER_B_Pin},
 };
+osMessageQueueId_t cmd_queue;
+osMessageQueueId_t result_queue;
+osSemaphoreId_t    smbus_done;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -74,6 +100,10 @@ static void MX_FDCAN1_Init(void);
 static void MX_I2C3_Init(void);
 static void MX_I2C4_SMBUS_Init(void);
 static void MX_TIM17_Init(void);
+void smbus_task_start(void *argument);
+void read_fan_start(void *argument);
+void canopen_task_start(void *argument);
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -125,36 +155,62 @@ int main(void)
   MX_I2C4_SMBUS_Init();
   MX_TIM17_Init();
   /* USER CODE BEGIN 2 */
-    CANopenNodeSTM32 canopenNodeSTM32;
-    canopenNodeSTM32.CANHandle = &hfdcan1;
-    canopenNodeSTM32.HWInitFunction = MX_FDCAN1_Init;
-    canopenNodeSTM32.timerHandle = &htim17;
-    canopenNodeSTM32.desiredNodeID = 29; // ADD THIS TO COMID TO GET TPDO ID
-    canopenNodeSTM32.baudrate = 125;
-    canopen_app_init(&canopenNodeSTM32);
-    HAL_GPIO_WritePin(TERM_EN_GPIO_Port, TERM_EN_Pin, GPIO_PIN_SET);
   /* USER CODE END 2 */
+
+  /* Init scheduler */
+  osKernelInitialize();
+
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+    cmd_queue    = osMessageQueueNew(8, sizeof(smbus_cmd_t), NULL);
+    result_queue = osMessageQueueNew(8, sizeof(smbus_result_t), NULL);
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* creation of smbus_task */
+  smbus_taskHandle = osThreadNew(smbus_task_start, NULL, &smbus_task_attributes);
+
+  /* creation of read_fans */
+  read_fansHandle = osThreadNew(read_fan_start, NULL, &read_fans_attributes);
+
+  /* creation of canopen_task */
+  canopen_taskHandle = osThreadNew(canopen_task_start, NULL, &canopen_task_attributes);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+  /* USER CODE END RTOS_THREADS */
+
+  /* USER CODE BEGIN RTOS_EVENTS */
+  /* add events, ... */
+  /* USER CODE END RTOS_EVENTS */
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-      canopen_app_process();
+      // blank because FREERTOS
+      // canopen_app_process();
       // OD_set_u32(OD_find(OD, 0x6000), 0x00, 123, false); // The correct way
-      // OD_PERSIST_COMM.x6000_counter++; // The simple way
-      // fan speed tPDOs
-      OD_PERSIST_COMM.x2101_W_fan_speed_1 = 1;
-      OD_PERSIST_COMM.x2102_W_fan_speed_2 = 2;
-      OD_PERSIST_COMM.x2103_W_fan_speed_3 = 3;
-      OD_PERSIST_COMM.x2104_W_fan_speed_4 = 4;
-      OD_PERSIST_COMM.x2105_W_fan_speed_5 = 5;
-      OD_PERSIST_COMM.x2106_W_fan_speed_6 = 6;
-      // rPDOs are missing because I have left them invalid until I can actually test
-      // high-side driver tPDOs
-      OD_PERSIST_COMM.x2201_hsd1 = false;
-      OD_PERSIST_COMM.x2202_hsd2 = false;
-      OD_PERSIST_COMM.x2203_hsd3 = false;
-      OD_PERSIST_COMM.x2204_hsd4 = false;
+      // OD_PERSIST_COMM.x2000_fan_1_r = 1; // The simple way
+
+     // high-side driver tPDOs
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -459,7 +515,7 @@ static void MX_I2C4_SMBUS_Init(void)
   hsmbus4.Init.NoStretchMode = SMBUS_NOSTRETCH_DISABLE;
   hsmbus4.Init.PacketErrorCheckMode = SMBUS_PEC_DISABLE;
   hsmbus4.Init.PeripheralMode = SMBUS_PERIPHERAL_MODE_SMBUS_SLAVE;
-  hsmbus4.Init.SMBusTimeout = 0x000080C3;
+  hsmbus4.Init.SMBusTimeout = 0x0000830D;
   if (HAL_SMBUS_Init(&hsmbus4) != HAL_OK)
   {
     Error_Handler();
@@ -574,16 +630,157 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-// // in text but not video?
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+/* USER CODE END 4 */
+
+/* USER CODE BEGIN Header_smbus_task_start */
+/**
+  * @brief  Function implementing the smbus_task thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_smbus_task_start */
+void smbus_task_start(void *argument) {
+    /* USER CODE BEGIN 5 */
+    smbus_cmd_t cmd;
+    for (;;) {
+        osMessageQueueGet(cmd_queue, &cmd, NULL, osWaitForever);
+
+        if (cmd.type == CMD_FAN_WRITE) {
+            const fan_config_t *cfg = &fan_configs[cmd.fan_num];
+            const uint16_t count = 7864320U / cmd.rpm;
+            uint8_t buf_tx[] = {
+                cfg->low_addr,
+                (uint8_t)((count & 0x1FU) << 3U),
+                cfg->high_addr,
+                (uint8_t)(count >> 5U),
+            };
+            HAL_SMBUS_Master_Transmit_IT(&hsmbus4, cfg->address << 1U, buf_tx, 4U, SMBUS_LAST_FRAME_NO_PEC);
+            while (HAL_SMBUS_GetState(&hsmbus4) != HAL_SMBUS_STATE_READY)
+            {
+                osDelay(1);
+            }
+            osSemaphoreAcquire(smbus_done, 50); // timeout guards against hung bus
+        }
+        else { // CMD_FAN_READ
+            const fan_config_t *cfg = &fan_configs[cmd.fan_num];
+
+            // Send hb register address first and ctrler will get matching lb
+            uint8_t reg = cfg->tach_high_addr;
+            HAL_SMBUS_Master_Transmit_IT(&hsmbus4, cfg->address << 1U, &reg, 1U, SMBUS_LAST_FRAME_NO_PEC);
+            while (HAL_SMBUS_GetState(&hsmbus4) != HAL_SMBUS_STATE_READY)
+            {
+                osDelay(1);
+            }
+
+            // Read hb and lb
+            uint8_t rx[2] = {0U, 0U};
+            HAL_SMBUS_Master_Receive_IT(&hsmbus4, cfg->address << 1U, rx, 2U, SMBUS_LAST_FRAME_NO_PEC);
+            while (HAL_SMBUS_GetState(&hsmbus4) != HAL_SMBUS_STATE_READY)
+            {
+                osDelay(1);
+            }
+
+            // Convert and send result
+            const uint16_t count = (uint16_t)(((uint16_t)rx[0] << 5U) | (rx[1] >> 3U));
+            const smbus_result_t result = {
+                .fan_num = cmd.fan_num,
+                .rpm     = (uint16_t)(7864320U / count),
+            };
+            osMessageQueuePut(result_queue, &result, 0U, 0U);
+        }
+    }
+  /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_read_fan_start */
+/**
+* @brief Function implementing the read_fans thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_read_fan_start */
+void read_fan_start(void *argument) {
+    /* USER CODE BEGIN read_fan_start */
+    uint32_t tick = osKernelGetTickCount();
+    uint8_t *od_read_arr[6] = {
+        &OD_PERSIST_COMM.x2000_fan_1_r,
+        &OD_PERSIST_COMM.x2001_fan_2_r,
+        &OD_PERSIST_COMM.x2002_fan_3_r,
+        &OD_PERSIST_COMM.x2003_fan_4_r,
+        &OD_PERSIST_COMM.x2004_fan_5_r,
+        &OD_PERSIST_COMM.x2005_fan_6_r,
+    };
+    /* Infinite loop */
+    for(;;)
+    {
+        // Drain result queue — process whatever came back last cycle
+        smbus_result_t res;
+        while (osMessageQueueGet(result_queue, &res, NULL, 0U) == osOK) {
+            // Update OD or local state
+            *od_read_arr[res.fan_num] = rpm_to_byte(res.rpm);
+        }
+
+        for (uint8_t i = 0; i < 6; i++) {
+            smbus_cmd_t cmd = { .type = CMD_FAN_READ, .fan_num = i };
+            osMessageQueuePut(cmd_queue, &cmd, 0U, 0U);
+        }
+        tick += 50;
+        osDelayUntil(tick);
+        /* USER CODE END read_fan_start */
+    }
+}
+
+/* USER CODE BEGIN Header_canopen_task_start */
+/**
+* @brief Function implementing the canopen_task thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_canopen_task_start */
+void canopen_task_start(void *argument)
+{
+  /* USER CODE BEGIN canopen_task_start */
+    CANopenNodeSTM32 canopenNodeSTM32;
+    canopenNodeSTM32.CANHandle = &hfdcan1;
+    canopenNodeSTM32.HWInitFunction = MX_FDCAN1_Init;
+    canopenNodeSTM32.timerHandle = &htim17;
+    canopenNodeSTM32.desiredNodeID = 29; // ADD THIS TO COMID TO GET TPDO ID
+    canopenNodeSTM32.baudrate = 125;
+    canopen_app_init(&canopenNodeSTM32);
+    HAL_GPIO_WritePin(TERM_EN_GPIO_Port, TERM_EN_Pin, GPIO_PIN_SET);
+    /* Infinite loop */
+  for(;;)
+  {
+      canopen_app_process();
+      vTaskDelay(pdMS_TO_TICKS(1));
+  }
+  /* USER CODE END canopen_task_start */
+}
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM1 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM1)
+  {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
     if (htim->Instance == TIM17) {
         canopen_app_interrupt();
     }
-    // HAL_GPIO_WritePin(USER_R_GPIO_Port, USER_R_Pin, GPIO_PIN_SET);
-    // HAL_GPIO_WritePin(USER_G_GPIO_Port, USER_G_Pin, GPIO_PIN_SET);
-    // HAL_GPIO_WritePin(USER_B_GPIO_Port, USER_B_Pin, GPIO_PIN_SET);
+  /* USER CODE END Callback 1 */
 }
-/* USER CODE END 4 */
 
 /**
   * @brief  This function is executed in case of error occurrence.
