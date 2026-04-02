@@ -26,6 +26,8 @@
 #include "CO_app_STM32.h"
 #include "OD.h"
 #include "smbus.h"
+#include "stm32_PMBUS_stack.h"
+#include "stm32_SMBUS_stack.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -86,6 +88,7 @@ HSEN_Pin_t hsen_pins[7] = {
     {USER_G_GPIO_Port, USER_G_Pin},
     {USER_B_GPIO_Port, USER_B_Pin},
 };
+SMBUS_StackHandleTypeDef context1;
 osMessageQueueId_t cmd_queue;
 osMessageQueueId_t result_queue;
 osSemaphoreId_t    smbus_done;
@@ -183,7 +186,7 @@ int main(void)
   smbus_taskHandle = osThreadNew(smbus_task_start, NULL, &smbus_task_attributes);
 
   /* creation of read_fans */
-  read_fansHandle = osThreadNew(read_fan_start, NULL, &read_fans_attributes);
+  // read_fansHandle = osThreadNew(read_fan_start, NULL, &read_fans_attributes);
 
   /* creation of canopen_task */
   canopen_taskHandle = osThreadNew(canopen_task_start, NULL, &canopen_task_attributes);
@@ -508,14 +511,20 @@ static void MX_I2C4_SMBUS_Init(void)
   hsmbus4.Init.GeneralCallMode = SMBUS_GENERALCALL_DISABLE;
   hsmbus4.Init.NoStretchMode = SMBUS_NOSTRETCH_DISABLE;
   hsmbus4.Init.PacketErrorCheckMode = SMBUS_PEC_DISABLE;
-  hsmbus4.Init.PeripheralMode = SMBUS_PERIPHERAL_MODE_SMBUS_SLAVE;
+  hsmbus4.Init.PeripheralMode = SMBUS_PERIPHERAL_MODE_SMBUS_HOST;
   hsmbus4.Init.SMBusTimeout = 0x0000830D;
   if (HAL_SMBUS_Init(&hsmbus4) != HAL_OK)
   {
     Error_Handler();
   }
   /* USER CODE BEGIN I2C4_Init 2 */
-
+    // Context config
+    context1.Device = &hsmbus4;
+    context1.CMD_table = (st_command_t *) &PMBUS_COMMANDS_TAB[0];
+    context1.CMD_tableSize = PMBUS_COMMANDS_TAB_SIZE;
+    context1.SRByte = 0x55U;
+    context1.CurrentCommand = NULL;
+    STACK_SMBUS_Init(&context1);
   /* USER CODE END I2C4_Init 2 */
 
 }
@@ -636,53 +645,61 @@ static void MX_GPIO_Init(void)
 void smbus_task_start(void *argument)
 {
   /* USER CODE BEGIN 5 */
-    smbus_cmd_t cmd;
+    // smbus_cmd_t cmd;
     for (;;) {
-        osMessageQueueGet(cmd_queue, &cmd, NULL, osWaitForever);
-
-        if (cmd.type == CMD_FAN_WRITE) {
-            const fan_config_t *cfg = &fan_configs[cmd.fan_num];
-            const uint16_t count = 7864320U / cmd.rpm;
-            uint8_t buf_tx[] = {
-                cfg->low_addr,
-                (uint8_t)((count & 0x1FU) << 3U),
-                cfg->high_addr,
-                (uint8_t)(count >> 5U),
-            };
-            HAL_SMBUS_Master_Transmit_IT(&hsmbus4, cfg->address << 1U, buf_tx, 4U, SMBUS_LAST_FRAME_NO_PEC);
-            while (HAL_SMBUS_GetState(&hsmbus4) != HAL_SMBUS_STATE_READY)
-            {
-                osDelay(1);
-            }
-            osSemaphoreAcquire(smbus_done, 50); // timeout guards against hung bus
-        }
-        else { // CMD_FAN_READ
-            const fan_config_t *cfg = &fan_configs[cmd.fan_num];
-
-            // Send hb register address first and ctrler will get matching lb
-            uint8_t reg = cfg->tach_high_addr;
-            HAL_SMBUS_Master_Transmit_IT(&hsmbus4, cfg->address << 1U, &reg, 1U, SMBUS_LAST_FRAME_NO_PEC);
-            while (HAL_SMBUS_GetState(&hsmbus4) != HAL_SMBUS_STATE_READY)
-            {
-                osDelay(1);
-            }
-
-            // Read hb and lb
-            uint8_t rx[2] = {0U, 0U};
-            HAL_SMBUS_Master_Receive_IT(&hsmbus4, cfg->address << 1U, rx, 2U, SMBUS_LAST_FRAME_NO_PEC);
-            while (HAL_SMBUS_GetState(&hsmbus4) != HAL_SMBUS_STATE_READY)
-            {
-                osDelay(1);
-            }
-
-            // Convert and send result
-            const uint16_t count = (uint16_t)(((uint16_t)rx[0] << 5U) | (rx[1] >> 3U));
-            const smbus_result_t result = {
-                .fan_num = cmd.fan_num,
-                .rpm     = (uint16_t)(7864320U / count),
-            };
-            osMessageQueuePut(result_queue, &result, 0U, 0U);
-        }
+        // osMessageQueueGet(cmd_queue, &cmd, NULL, osWaitForever);
+        //
+        // if (cmd.type == CMD_FAN_WRITE) {
+        //     const fan_config_t *cfg = &fan_configs[cmd.fan_num];
+        //     const uint16_t count = 7864320U / cmd.rpm;
+        //     uint8_t buf_tx[] = {
+        //         cfg->low_addr,
+        //         (uint8_t)((count & 0x1FU) << 3U),
+        //         cfg->high_addr,
+        //         (uint8_t)(count >> 5U),
+        //     };
+        //     HAL_SMBUS_Master_Transmit_IT(&hsmbus4, cfg->address << 1U, buf_tx, 4U, SMBUS_LAST_FRAME_NO_PEC);
+        //     while (HAL_SMBUS_GetState(&hsmbus4) != HAL_SMBUS_STATE_READY)
+        //     {
+        //         osDelay(1);
+        //     }
+        //     osSemaphoreAcquire(smbus_done, 50); // timeout guards against hung bus
+        // }
+        // else { // CMD_FAN_READ
+        //     const fan_config_t *cfg = &fan_configs[cmd.fan_num];
+        //
+        //     // Send hb register address first and ctrler will get matching lb
+        //     uint8_t reg = cfg->tach_high_addr;
+        //     HAL_SMBUS_Master_Transmit_IT(&hsmbus4, cfg->address << 1U, &reg, 1U, SMBUS_LAST_FRAME_NO_PEC);
+        //     while (HAL_SMBUS_GetState(&hsmbus4) != HAL_SMBUS_STATE_READY)
+        //     {
+        //         osDelay(1);
+        //     }
+        //
+        //     // Read hb and lb
+        //     uint8_t rx[2] = {0U, 0U};
+        //     HAL_SMBUS_Master_Receive_IT(&hsmbus4, cfg->address << 1U, rx, 2U, SMBUS_LAST_FRAME_NO_PEC);
+        //     while (HAL_SMBUS_GetState(&hsmbus4) != HAL_SMBUS_STATE_READY)
+        //     {
+        //         osDelay(1);
+        //     }
+        //
+        //     // Convert and send result
+        //     const uint16_t count = (uint16_t)(((uint16_t)rx[0] << 5U) | (rx[1] >> 3U));
+        //     const smbus_result_t result = {
+        //         .fan_num = cmd.fan_num,
+        //         .rpm     = (uint16_t)(7864320U / count),
+        //     };
+        //     osMessageQueuePut(result_queue, &result, 0U, 0U);
+        // }
+        HAL_GPIO_WritePin(USER_R_GPIO_Port, USER_R_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(USER_G_GPIO_Port, USER_G_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(USER_B_GPIO_Port, USER_B_Pin, GPIO_PIN_RESET);
+        osDelay(200);
+        HAL_GPIO_WritePin(USER_R_GPIO_Port, USER_R_Pin, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(USER_G_GPIO_Port, USER_G_Pin, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(USER_B_GPIO_Port, USER_B_Pin, GPIO_PIN_SET);
+        osDelay(200);
     }
   /* USER CODE END 5 */
 }
@@ -758,12 +775,54 @@ void read_fan_start(void *argument)
 void canopen_task_start(void *argument)
 {
   /* USER CODE BEGIN canopen_task_start */
+    uint8_t *piobuf = NULL;
+
     CANopenNodeSTM32 canopenNodeSTM32;
     canopenNodeSTM32.CANHandle = &hfdcan1;
     canopenNodeSTM32.HWInitFunction = MX_FDCAN1_Init;
     canopenNodeSTM32.timerHandle = &htim17;
     canopenNodeSTM32.desiredNodeID = 29; // ADD THIS TO COMID TO GET TPDO ID
     canopenNodeSTM32.baudrate = 125;
+
+    // const uint8_t k_fan_config = 0x2BU;
+    // const uint8_t k_fan_config_regs[] = {0x32U, 0x42U, 0x52U};
+    const uint8_t k_fan_speed_regs[] = {0x30U, 0x40U, 0x50U};
+    const uint16_t k_controller_addrs[] = {0x5C, 0x5E};
+
+    for (uint8_t i = 0; i < (uint8_t)(sizeof(k_controller_addrs)/sizeof(k_controller_addrs[0])); i++) {
+        // context1 is defined after hsmbus4 init
+        piobuf = STACK_SMBUS_GetBuffer(&context1);
+        st_command_t WRITE_PUSH_PULL = {0x2B, WRITE, 2, 0};
+        piobuf[0] = 0x7; // Data that you're writing
+        STACK_SMBUS_HostCommand(&context1, &WRITE_PUSH_PULL, k_controller_addrs[i], WRITE);
+        while (STACK_SMBUS_IsBusy(&context1)) {osDelay(1);}
+        for (uint8_t j = 0; j < sizeof(k_fan_speed_regs)/sizeof(k_fan_speed_regs[0]); j++) {
+            piobuf = STACK_SMBUS_GetBuffer(&context1);
+            st_command_t TEST_FAN_SPEED = {k_fan_speed_regs[j], WRITE, 2, 0};
+            piobuf[0] = 0x99;
+            STACK_SMBUS_HostCommand(&context1, &TEST_FAN_SPEED, k_controller_addrs[i], WRITE);
+            while (STACK_SMBUS_IsBusy(&context1)) {osDelay(1);}
+        }
+    }
+
+    // uint8_t tx_buf[] = {k_fan_config_regs[0], k_fan_config};
+    // uint32_t status_before = HAL_SMBUS_GetState(&hsmbus4);
+    // if (status_before == HAL_SMBUS_STATE_READY) {
+        // HAL_GPIO_WritePin(USER_R_GPIO_Port, USER_R_Pin, GPIO_PIN_SET);
+        // HAL_GPIO_WritePin(USER_G_GPIO_Port, USER_G_Pin, GPIO_PIN_SET);
+        // HAL_GPIO_WritePin(USER_B_GPIO_Port, USER_B_Pin, GPIO_PIN_SET);
+    // }
+    // uint8_t tx_mask[] = {0x20U, 0xC0U};
+    // HAL_StatusTypeDef status_before = HAL_SMBUS_Master_Transmit_IT(&hsmbus4, k_controller_addrs[0], tx_mask, 2U, SMBUS_LAST_FRAME_NO_PEC);
+    // HAL_StatusTypeDef status = HAL_SMBUS_Master_Transmit_IT(&hsmbus4, k_controller_addrs[0], tx_buf,2U, SMBUS_LAST_FRAME_NO_PEC);
+    // HAL_StatusTypeDef status2 = HAL_SMBUS_Master_Transmit_IT(&hsmbus4, k_controller_addrs[1], tx_buf,2U, SMBUS_LAST_FRAME_NO_PEC);
+    // status_before = HAL_SMBUS_GetState(&hsmbus4);
+    // if (status_before == HAL_SMBUS_STATE_READY) {
+    //     HAL_GPIO_WritePin(USER_R_GPIO_Port, USER_R_Pin, GPIO_PIN_SET);
+    //     HAL_GPIO_WritePin(USER_G_GPIO_Port, USER_G_Pin, GPIO_PIN_SET);
+    //     HAL_GPIO_WritePin(USER_B_GPIO_Port, USER_B_Pin, GPIO_PIN_SET);
+    // }
+
     canopen_app_init(&canopenNodeSTM32);
     HAL_GPIO_WritePin(TERM_EN_GPIO_Port, TERM_EN_Pin, GPIO_PIN_SET);
     /* Infinite loop */
@@ -772,6 +831,7 @@ void canopen_task_start(void *argument)
       canopen_app_process();
       // HAL_GPIO_WritePin(TERM_EN_GPIO_Port, TERM_EN_Pin, OD_PERSIST_COMM.x2301_thermal_en ? GPIO_PIN_SET : GPIO_PIN_RESET );
       vTaskDelay(pdMS_TO_TICKS(1));
+      // osDelay(200);
   }
   /* USER CODE END canopen_task_start */
 }
