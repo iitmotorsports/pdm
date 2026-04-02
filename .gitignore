@@ -43,3 +43,11 @@
 
 # build
 /build/
+
+# ccls cache
+.ccls-cache/
+*/.ccls-cache/
+
+# direnv
+.envrc
+/.direnv/

@@ -214,12 +214,6 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    HAL_GPIO_WritePin(HSEN1_GPIO_Port, HSEN1_Pin, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(HSEN2_GPIO_Port, HSEN2_Pin, GPIO_PIN_SET);
-      HAL_Delay(250);
-      HAL_GPIO_WritePin(HSEN1_GPIO_Port, HSEN1_Pin, GPIO_PIN_RESET);
-      HAL_GPIO_WritePin(HSEN2_GPIO_Port, HSEN2_Pin, GPIO_PIN_RESET);
-      HAL_Delay(250);
   }
   /* USER CODE END 3 */
 }
@@ -639,8 +633,9 @@ static void MX_GPIO_Init(void)
   * @retval None
   */
 /* USER CODE END Header_smbus_task_start */
-void smbus_task_start(void *argument) {
-    /* USER CODE BEGIN 5 */
+void smbus_task_start(void *argument)
+{
+  /* USER CODE BEGIN 5 */
     smbus_cmd_t cmd;
     for (;;) {
         osMessageQueueGet(cmd_queue, &cmd, NULL, osWaitForever);
@@ -699,9 +694,9 @@ void smbus_task_start(void *argument) {
 * @retval None
 */
 /* USER CODE END Header_read_fan_start */
-void read_fan_start(void *argument) {
-    /* USER CODE BEGIN read_fan_start */
-    uint32_t tick = osKernelGetTickCount();
+void read_fan_start(void *argument)
+{
+  /* USER CODE BEGIN read_fan_start */
     uint8_t *od_read_arr[6] = {
         &OD_PERSIST_COMM.x2000_fan_1_r,
         &OD_PERSIST_COMM.x2001_fan_2_r,
@@ -711,23 +706,46 @@ void read_fan_start(void *argument) {
         &OD_PERSIST_COMM.x2005_fan_6_r,
     };
     /* Infinite loop */
-    for(;;)
-    {
+    for(;;) {
         // Drain result queue — process whatever came back last cycle
         smbus_result_t res;
         while (osMessageQueueGet(result_queue, &res, NULL, 0U) == osOK) {
             // Update OD or local state
-            *od_read_arr[res.fan_num] = rpm_to_byte(res.rpm);
+            uint8_t *od_read_arr[6] = {
+                &OD_PERSIST_COMM.x2000_fan_1_r,
+                &OD_PERSIST_COMM.x2001_fan_2_r,
+                &OD_PERSIST_COMM.x2002_fan_3_r,
+                &OD_PERSIST_COMM.x2003_fan_4_r,
+                &OD_PERSIST_COMM.x2004_fan_5_r,
+                &OD_PERSIST_COMM.x2005_fan_6_r,
+            };
+            /* Infinite loop */
+            for(;;) {
+                // Drain result queue — process whatever came back last cycle
+                smbus_result_t res;
+                while (osMessageQueueGet(result_queue, &res, NULL, 0U) == osOK) {
+                    // Update OD or local state
+                    *od_read_arr[res.fan_num] = rpm_to_byte(res.rpm);
+                }
+
+                for (uint8_t i = 0; i < 6; i++) {
+                    smbus_cmd_t cmd = { .type = CMD_FAN_READ, .fan_num = i };
+                    osMessageQueuePut(cmd_queue, &cmd, 0U, 0U);
+                }
+                osDelay(50);
+                if (res.fan_num < 6) {
+                    *od_read_arr[res.fan_num] = rpm_to_byte(res.rpm);
+                }
+            }
         }
 
         for (uint8_t i = 0; i < 6; i++) {
             smbus_cmd_t cmd = { .type = CMD_FAN_READ, .fan_num = i };
             osMessageQueuePut(cmd_queue, &cmd, 0U, 0U);
         }
-        tick += 50;
-        osDelayUntil(tick);
-        /* USER CODE END read_fan_start */
+        osDelay(50);
     }
+  /* USER CODE END read_fan_start */
 }
 
 /* USER CODE BEGIN Header_canopen_task_start */
@@ -752,6 +770,7 @@ void canopen_task_start(void *argument)
   for(;;)
   {
       canopen_app_process();
+      // HAL_GPIO_WritePin(TERM_EN_GPIO_Port, TERM_EN_Pin, OD_PERSIST_COMM.x2301_thermal_en ? GPIO_PIN_SET : GPIO_PIN_RESET );
       vTaskDelay(pdMS_TO_TICKS(1));
   }
   /* USER CODE END canopen_task_start */
