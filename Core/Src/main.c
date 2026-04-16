@@ -177,8 +177,6 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
-    cmd_queue    = osMessageQueueNew(8, sizeof(smbus_cmd_t), NULL);
-    result_queue = osMessageQueueNew(8, sizeof(smbus_result_t), NULL);
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -714,53 +712,8 @@ void smbus_task_start(void *argument)
 void read_fan_start(void *argument)
 {
   /* USER CODE BEGIN read_fan_start */
-    uint8_t *od_read_arr[6] = {
-        &OD_PERSIST_COMM.x2000_fan_1_r,
-        &OD_PERSIST_COMM.x2001_fan_2_r,
-        &OD_PERSIST_COMM.x2002_fan_3_r,
-        &OD_PERSIST_COMM.x2003_fan_4_r,
-        &OD_PERSIST_COMM.x2004_fan_5_r,
-        &OD_PERSIST_COMM.x2005_fan_6_r,
-    };
     /* Infinite loop */
     for(;;) {
-        // Drain result queue — process whatever came back last cycle
-        smbus_result_t res;
-        while (osMessageQueueGet(result_queue, &res, NULL, 0U) == osOK) {
-            // Update OD or local state
-            uint8_t *od_read_arr[6] = {
-                &OD_PERSIST_COMM.x2000_fan_1_r,
-                &OD_PERSIST_COMM.x2001_fan_2_r,
-                &OD_PERSIST_COMM.x2002_fan_3_r,
-                &OD_PERSIST_COMM.x2003_fan_4_r,
-                &OD_PERSIST_COMM.x2004_fan_5_r,
-                &OD_PERSIST_COMM.x2005_fan_6_r,
-            };
-            /* Infinite loop */
-            for(;;) {
-                // Drain result queue — process whatever came back last cycle
-                smbus_result_t res;
-                while (osMessageQueueGet(result_queue, &res, NULL, 0U) == osOK) {
-                    // Update OD or local state
-                    *od_read_arr[res.fan_num] = rpm_to_byte(res.rpm);
-                }
-
-                for (uint8_t i = 0; i < 6; i++) {
-                    smbus_cmd_t cmd = { .type = CMD_FAN_READ, .fan_num = i };
-                    osMessageQueuePut(cmd_queue, &cmd, 0U, 0U);
-                }
-                osDelay(50);
-                if (res.fan_num < 6) {
-                    *od_read_arr[res.fan_num] = rpm_to_byte(res.rpm);
-                }
-            }
-        }
-
-        for (uint8_t i = 0; i < 6; i++) {
-            smbus_cmd_t cmd = { .type = CMD_FAN_READ, .fan_num = i };
-            osMessageQueuePut(cmd_queue, &cmd, 0U, 0U);
-        }
-        osDelay(50);
     }
   /* USER CODE END read_fan_start */
 }
@@ -784,10 +737,10 @@ void canopen_task_start(void *argument)
     canopenNodeSTM32.desiredNodeID = 29; // ADD THIS TO COMID TO GET TPDO ID
     canopenNodeSTM32.baudrate = 125;
 
-    // const uint8_t k_fan_config = 0x2BU;
-    // const uint8_t k_fan_config_regs[] = {0x32U, 0x42U, 0x52U};
-    const uint8_t k_fan_speed_regs[] = {0x30U, 0x40U, 0x50U};
     const uint16_t k_controller_addrs[] = {0x5C, 0x5E};
+    const uint8_t k_fan_settings_regs[] = {0x32U, 0x42U, 0x52U};
+    const uint8_t k_fan_target_lb_regs[] = {0x3CU, 0x4CU, 0x5CU};
+    const uint8_t k_fan_target_hb_regs[] = {0x3DU, 0x4DU, 0x5DU};
 
     for (uint8_t i = 0; i < (uint8_t)(sizeof(k_controller_addrs)/sizeof(k_controller_addrs[0])); i++) {
         // context1 is defined after hsmbus4 init
@@ -796,32 +749,33 @@ void canopen_task_start(void *argument)
         piobuf[0] = 0x7; // Data that you're writing
         STACK_SMBUS_HostCommand(&context1, &WRITE_PUSH_PULL, k_controller_addrs[i], WRITE);
         while (STACK_SMBUS_IsBusy(&context1)) {osDelay(1);}
-        for (uint8_t j = 0; j < sizeof(k_fan_speed_regs)/sizeof(k_fan_speed_regs[0]); j++) {
+        for (uint8_t j = 0; j < sizeof(k_fan_settings_regs)/sizeof(k_fan_settings_regs[0]); j++) {
             piobuf = STACK_SMBUS_GetBuffer(&context1);
-            st_command_t TEST_FAN_SPEED = {k_fan_speed_regs[j], WRITE, 2, 0};
-            piobuf[0] = 0x99;
+            // FSC is the closed loop mode
+            st_command_t WRITE_FSC_SETTINGS = {k_fan_settings_regs[j], WRITE, 2, 0};
+            piobuf[0] = 0x80U | 0x2BU;
+            STACK_SMBUS_HostCommand(&context1, &WRITE_FSC_SETTINGS, k_controller_addrs[i], WRITE);
+            while (STACK_SMBUS_IsBusy(&context1)) {osDelay(1);}
+        }
+        const uint16_t rpm = 2000U;
+        const uint16_t tach = 3932160U * 2 / rpm;
+        for (uint8_t j = 0; j < sizeof(k_fan_settings_regs)/sizeof(k_fan_settings_regs[0]); j++) {
+            piobuf = STACK_SMBUS_GetBuffer(&context1);
+            st_command_t TEST_FAN_SPEED = {k_fan_target_lb_regs[j], WRITE, 2, 0};
+            piobuf[0] = (uint8_t)((tach & 0x1FU) << 3);
+            STACK_SMBUS_HostCommand(&context1, &TEST_FAN_SPEED, k_controller_addrs[i], WRITE);
+            while (STACK_SMBUS_IsBusy(&context1)) {osDelay(1);}
+        }
+        for (uint8_t j = 0; j < sizeof(k_fan_settings_regs)/sizeof(k_fan_settings_regs[0]); j++) {
+            piobuf = STACK_SMBUS_GetBuffer(&context1);
+            st_command_t TEST_FAN_SPEED = {k_fan_target_hb_regs[j], WRITE, 2, 0};
+            piobuf[0] = (uint8_t)(tach >> 5);
             STACK_SMBUS_HostCommand(&context1, &TEST_FAN_SPEED, k_controller_addrs[i], WRITE);
             while (STACK_SMBUS_IsBusy(&context1)) {osDelay(1);}
         }
     }
 
-    // uint8_t tx_buf[] = {k_fan_config_regs[0], k_fan_config};
-    // uint32_t status_before = HAL_SMBUS_GetState(&hsmbus4);
-    // if (status_before == HAL_SMBUS_STATE_READY) {
-        // HAL_GPIO_WritePin(USER_R_GPIO_Port, USER_R_Pin, GPIO_PIN_SET);
-        // HAL_GPIO_WritePin(USER_G_GPIO_Port, USER_G_Pin, GPIO_PIN_SET);
-        // HAL_GPIO_WritePin(USER_B_GPIO_Port, USER_B_Pin, GPIO_PIN_SET);
-    // }
-    // uint8_t tx_mask[] = {0x20U, 0xC0U};
-    // HAL_StatusTypeDef status_before = HAL_SMBUS_Master_Transmit_IT(&hsmbus4, k_controller_addrs[0], tx_mask, 2U, SMBUS_LAST_FRAME_NO_PEC);
-    // HAL_StatusTypeDef status = HAL_SMBUS_Master_Transmit_IT(&hsmbus4, k_controller_addrs[0], tx_buf,2U, SMBUS_LAST_FRAME_NO_PEC);
-    // HAL_StatusTypeDef status2 = HAL_SMBUS_Master_Transmit_IT(&hsmbus4, k_controller_addrs[1], tx_buf,2U, SMBUS_LAST_FRAME_NO_PEC);
-    // status_before = HAL_SMBUS_GetState(&hsmbus4);
-    // if (status_before == HAL_SMBUS_STATE_READY) {
-    //     HAL_GPIO_WritePin(USER_R_GPIO_Port, USER_R_Pin, GPIO_PIN_SET);
-    //     HAL_GPIO_WritePin(USER_G_GPIO_Port, USER_G_Pin, GPIO_PIN_SET);
-    //     HAL_GPIO_WritePin(USER_B_GPIO_Port, USER_B_Pin, GPIO_PIN_SET);
-    // }
+
 
     canopen_app_init(&canopenNodeSTM32);
     HAL_GPIO_WritePin(TERM_EN_GPIO_Port, TERM_EN_Pin, GPIO_PIN_SET);
@@ -831,7 +785,6 @@ void canopen_task_start(void *argument)
       canopen_app_process();
       // HAL_GPIO_WritePin(TERM_EN_GPIO_Port, TERM_EN_Pin, OD_PERSIST_COMM.x2301_thermal_en ? GPIO_PIN_SET : GPIO_PIN_RESET );
       vTaskDelay(pdMS_TO_TICKS(1));
-      // osDelay(200);
   }
   /* USER CODE END canopen_task_start */
 }

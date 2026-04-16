@@ -57,68 +57,10 @@ CO_t* CO = NULL; /* CANopen object */
 uint32_t time_old, time_current;
 CO_ReturnError_t err;
 
-// External references
-extern SMBUS_HandleTypeDef hsmbus4;
 
-// Constants
-uint16_t MAX_FAN_SPEED = 5000; // FIXME: Replace with actual fan speed
 
 // Helper functions
 
-// Encode RPM to byte for CAN transmission
-uint8_t rpm_to_byte(const uint16_t rpm)
-{
-    return (uint8_t)((rpm * 255U) / MAX_FAN_SPEED);
-}
-
-// Decode byte back to RPM
-uint16_t byte_to_rpm(const uint8_t value)
-{
-    return (uint16_t)((value * MAX_FAN_SPEED) / 255U);
-}
-
-typedef struct {
-    GPIO_TypeDef *port;
-    uint16_t      pin;
-    uint8_t      *od_value;
-} gpio_od_config_t;
-
-static  gpio_od_config_t gpio_configs[4];
-
-static ODR_t gpio_callback(OD_stream_t *stream, const void *buf, const OD_size_t size, OD_size_t *countWritten) {
-    const ODR_t result = OD_writeOriginal(stream, buf, size, countWritten);
-    if (result == ODR_OK) {
-        const gpio_od_config_t *cfg = stream -> object;
-        HAL_GPIO_WritePin(cfg -> port, cfg -> pin, *cfg -> od_value ? GPIO_PIN_SET : GPIO_PIN_RESET);
-    }
-    return result;
-}
-
-
-static OD_extension_t gpio_extensions[sizeof(gpio_configs) / sizeof(gpio_configs[0])];
-
-
-fan_config_t fan_configs[6];
-
-static ODR_t fan_callback(OD_stream_t *stream, const void *buf, const OD_size_t size, OD_size_t *countWritten) {
-    const ODR_t result = OD_writeOriginal(stream, buf, size, countWritten);
-    if (result == ODR_OK) {
-        const fan_config_t *cfg = stream->object;
-        const uint16_t rpm = byte_to_rpm(*cfg->od_value);
-        // const uint16_t count = (uint16_t)(7864320U / rpm);
-        // const uint8_t low  = (uint8_t)((count & 0x1FU) << 3U); // Lower 5 bits [4:0] shifted in accordance with 5.17 in datasheet
-        // const uint8_t high = (uint8_t)(count >> 5U); // Upper 8 bits [12:5]
-        const smbus_cmd_t cmd = {
-            .type = CMD_FAN_WRITE,
-            .fan_num = cfg->fan_num,
-            .rpm = rpm,
-        };
-        osMessageQueuePut(cmd_queue, &cmd, 0, 0);
-    }
-    return result;
-}
-
-static OD_extension_t fan_extensions[sizeof(fan_configs) / sizeof(fan_configs[0])];
 
 /* This function will basically setup the CANopen node */
 int
