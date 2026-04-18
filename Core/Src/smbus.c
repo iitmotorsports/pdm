@@ -1,4 +1,6 @@
 #include "stm32_SMBUS_stack.h"
+
+#include <stdbool.h>
 #include <stdint.h>
 
 // Constants
@@ -16,9 +18,3 @@ uint16_t byte_to_rpm(const uint8_t value)
 {
     return (uint16_t)((value * MAX_FAN_SPEED) / 255U);
 }
-
-typedef  struct {
-    uint8_t data;
-    st_command_t command;
-
-} smbus_cmd_t;

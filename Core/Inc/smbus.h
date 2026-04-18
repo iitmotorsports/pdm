@@ -1,13 +1,19 @@
 #pragma once
-#include "cmsis_os.h"
-
-extern osMessageQueueId_t cmd_queue;
-extern osMessageQueueId_t result_queue;
+#include "stm32_SMBUS_stack.h"
 
 extern uint16_t MAX_FAN_SPEED;
 
-typedef enum { CMD_FAN_WRITE, CMD_FAN_READ } smbus_cmd_type_t;
-
+typedef struct {
+    uint8_t data;
+    uint8_t controller_addr;
+    st_command_t command;
+    bool write;
+} smbus_cmd_t;
 
 uint8_t rpm_to_byte(uint16_t rpm);
 uint16_t byte_to_rpm(uint8_t value);
+
+typedef struct {
+    uint16_t tach;
+    uint8_t fan_num;
+} fan_tach_t;
