@@ -91,6 +91,7 @@ HSEN_Pin_t hsen_pins[7] = {
 SMBUS_StackHandleTypeDef context1;
 osMessageQueueId_t smbus_queueHandle;
 osMessageQueueId_t tach_queueHandle;
+const uint8_t k_controller_addrs[] = {0x5C, 0x5E};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -185,7 +186,7 @@ int main(void)
   smbus_taskHandle = osThreadNew(smbus_task_start, NULL, &smbus_task_attributes);
 
   /* creation of read_fans */
-  // read_fansHandle = osThreadNew(read_fan_start, NULL, &read_fans_attributes);
+  read_fansHandle = osThreadNew(read_fan_start, NULL, &read_fans_attributes);
 
   /* creation of canopen_task */
   canopen_taskHandle = osThreadNew(canopen_task_start, NULL, &canopen_task_attributes);
@@ -647,7 +648,6 @@ void smbus_task_start(void *argument)
     uint8_t *piobuf = NULL;
     piobuf = STACK_SMBUS_GetBuffer(&context1);
 
-    const uint8_t k_controller_addrs[] = {0x5C, 0x5E};
     const uint8_t k_fan_settings_regs[] = {0x32U, 0x42U, 0x52U};
 
     for (uint8_t i = 0; i < (uint8_t)(sizeof(k_controller_addrs)/sizeof(k_controller_addrs[0])); i++) {
@@ -683,20 +683,13 @@ void smbus_task_start(void *argument)
                 STACK_SMBUS_HostCommand(&context1, &smbus_cmd.command, smbus_cmd.controller_addr, smbus_cmd.write ? WRITE : READ);
                 while (STACK_SMBUS_IsBusy(&context1)) {osDelay(1);}
                 const uint16_t lb = piobuf[0];
-                uint16_t tach = (read << 8 | lb) >> 3;
+                const uint16_t tach = ((uint16_t)read << 8 | lb) >> 3;
 
-                // This cannot be the best way to do this
-                uint8_t  ctrler_fan_num = 3;
-                switch (smbus_cmd.command.cmnd_code & 0xF0U) {
-                    case 3:
-                        ctrler_fan_num = 1;
-                        break;
-                    case 4:
-                        ctrler_fan_num = 2;
-                        break;
-                }
-                uint8_t fan_num = ((smbus_cmd.controller_addr ^ 0x5CU) == 0 ? 0 : 3) + ctrler_fan_num;
+                // Figure out fan number
+                const uint8_t  ctrler_fan_num = (smbus_cmd.command.cmnd_code >> 4) - 0x2U; // EXAMPLE: 0x30U >> 4 = 0x3U; 0x3U - 0x2U = 0x1U or fan1
+                const uint8_t fan_num = (smbus_cmd.controller_addr == 0x5CU ? 0 : 3) + (ctrler_fan_num);
                 fan_tach_t fan_tach = {tach, fan_num};
+
                 // If queue is full will hang until it's not full
                 osMessageQueuePut(tach_queueHandle, &fan_tach, 0, osWaitForever);
             }
@@ -719,7 +712,18 @@ void read_fan_start(void *argument)
 {
   /* USER CODE BEGIN read_fan_start */
     /* Infinite loop */
+    const uint8_t k_fan_tach_regs[] = {0x3EU, 0x4EU, 0x5EU};
     for(;;) {
+        for (uint8_t i = 0; i < (uint8_t)(sizeof(k_controller_addrs)/sizeof(k_controller_addrs[0])); i++) {
+            for (uint8_t j = 0; j < (uint8_t)(sizeof(k_fan_tach_regs)/sizeof(k_fan_tach_regs[0])); j++) {
+            #pragma clang diagnostic push
+            #pragma clang diagnostic ignored "-Wmissing-braces"
+                smbus_cmd_t smbus_cmd = {0, k_controller_addrs[i], k_fan_tach_regs[j], false};
+            #pragma clang diagnostic pop
+                osMessageQueuePut(smbus_queueHandle, &smbus_cmd, 0, osWaitForever);
+            }
+        }
+        osDelay(100);
     }
   /* USER CODE END read_fan_start */
 }
