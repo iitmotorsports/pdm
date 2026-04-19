@@ -22,4 +22,6 @@ jobs:
           ignore: 'CANopenNode/|CANopenNode_STM32/|Drivers/|Middlewares/'
       - name: Fail fast?!
         if: steps.linter.outputs.checks-failed > 0
-        run: exit 1
+        run: |
+          echo "::error::${{steps.linter.outputs.checks-failed}} Linting failed. Please fix before merging."
+          exit 1
