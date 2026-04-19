@@ -5,6 +5,7 @@ on:
       - opened
       - reopened
       - ready_for_review
+      - synchronize
 jobs:
   cpp-linter:
     runs-on: ubuntu-latest
@@ -18,7 +19,13 @@ jobs:
           style: 'file'
           tidy-checks: ''
           thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
-          ignore: 'CANopenNode/'
+          ignore: | 
+            CANopenNode/
+            CANopenNode_STM32/
+            Drivers/
+            Middlewares/
       - name: Fail fast?!
         if: steps.linter.outputs.checks-failed > 0
-        run: exit 1
+        run: | 
+          echo "::error::${{ steps.linter.outputs.checks-failed }} C++ linting check(s) failed. Fix formatting issues before merging."
+          exit 1
