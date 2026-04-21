@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 // Constants
-uint16_t MAX_FAN_SPEED = 5000; // FIXME: Replace with actual fan speed
+uint16_t MAX_FAN_SPEED = 5500; // FIXME: Replace with actual fan speed
 
 //Helper Functions
 // Encode RPM to byte for CAN transmission

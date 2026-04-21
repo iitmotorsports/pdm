@@ -170,7 +170,6 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
-#include "main.h"
 #include "stm32g4xx_hal.h"
 
 /** @addtogroup STM32G4xx_HAL_Driver
@@ -1403,7 +1402,7 @@ HAL_StatusTypeDef HAL_SMBUS_Slave_Receive_IT(SMBUS_HandleTypeDef *hsmbus, uint8_
   */
 HAL_StatusTypeDef HAL_SMBUS_EnableListen_IT(SMBUS_HandleTypeDef *hsmbus)
 {
-    hsmbus->State = HAL_SMBUS_STATE_LISTEN;
+  hsmbus->State = HAL_SMBUS_STATE_LISTEN;
 
   /* Enable the Address Match interrupt */
   SMBUS_Enable_IRQ(hsmbus, SMBUS_IT_ADDR);
@@ -2438,11 +2437,11 @@ static HAL_StatusTypeDef SMBUS_Slave_ISR(SMBUS_HandleTypeDef *hsmbus, uint32_t S
   */
 static void SMBUS_Enable_IRQ(SMBUS_HandleTypeDef *hsmbus, uint32_t InterruptRequest)
 {
-    uint32_t tmpisr = 0UL;
+  uint32_t tmpisr = 0UL;
 
   if ((InterruptRequest & SMBUS_IT_ALERT) == SMBUS_IT_ALERT)
   {
-      /* Enable ERR interrupt */
+    /* Enable ERR interrupt */
     tmpisr |= SMBUS_IT_ERRI;
   }
 
@@ -2467,7 +2466,7 @@ static void SMBUS_Enable_IRQ(SMBUS_HandleTypeDef *hsmbus, uint32_t InterruptRequ
   /* Enable interrupts only at the end */
   /* to avoid the risk of SMBUS interrupt handle execution before */
   /* all interrupts requested done */
-    __HAL_SMBUS_ENABLE_IT(hsmbus, tmpisr);
+  __HAL_SMBUS_ENABLE_IT(hsmbus, tmpisr);
 }
 /**
   * @brief  Manage the disabling of Interrupts.

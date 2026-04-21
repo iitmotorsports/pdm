@@ -58,75 +58,11 @@ uint32_t time_old, time_current;
 CO_ReturnError_t err;
 
 
-
-// Helper functions
-
-
 /* This function will basically setup the CANopen node */
 int
 canopen_app_init(CANopenNodeSTM32* _canopenNodeSTM32) {
     // Keep a copy global reference of canOpenSTM32 Object
     canopenNodeSTM32 = _canopenNodeSTM32;
-
-    // OD_entry_t *gpio_entries[] = {
-    //     OD_ENTRY_H2200,
-    //     OD_ENTRY_H2201,
-    //     OD_ENTRY_H2202,
-    //     OD_ENTRY_H2203,
-    // };
-    //
-    // gpio_configs[0] = (gpio_od_config_t){HSEN1_GPIO_Port, HSEN1_Pin, &OD_PERSIST_COMM.x2200_hsd_1_w};
-    // gpio_configs[1] = (gpio_od_config_t){HSEN2_GPIO_Port, HSEN2_Pin, &OD_PERSIST_COMM.x2201_hsd_2_w};
-    // gpio_configs[2] = (gpio_od_config_t){HSEN3_GPIO_Port, HSEN3_Pin, &OD_PERSIST_COMM.x2202_hsd_3_w};
-    // gpio_configs[3] = (gpio_od_config_t){HSEN4_GPIO_Port, HSEN4_Pin, &OD_PERSIST_COMM.x2203_hsd_4_w};
-    //
-    // for(size_t i = 0; i < sizeof(gpio_entries) / sizeof(gpio_entries[0]); i++) {
-    //     gpio_extensions[i].object = &gpio_configs[i];
-    //     gpio_extensions[i].read = NULL;
-    //     gpio_extensions[i].write = gpio_callback;
-    //     OD_extension_init(gpio_entries[i], &gpio_extensions[i]);
-    // }
-
-
-    // Enable RPM control for all fans on both controllers
-    // const uint8_t k_fan_config = 0x80U | 0x2BU;
-    // const uint8_t k_fan_config_regs[] = {0x32U, 0x42U, 0x52U};
-    // const uint16_t k_controller_addrs[] = {0x2EU << 1, 0x2FU << 1};
-    //
-    // uint8_t tx_buf[] = {k_fan_config_regs[0], k_fan_config};
-    // HAL_SMBUS_Master_Transmit_IT(&hsmbus4, k_controller_addrs[0], tx_buf,2U, SMBUS_LAST_FRAME_NO_PEC);
-    // for (size_t ctrl = 0U; ctrl < 2U; ctrl++)
-    // {
-    //     for (size_t fan = 0U; fan < 3U; fan++)
-    //     {
-    //         uint8_t tx_buf[] = {k_fan_config_regs[fan], k_fan_config};
-    //         HAL_SMBUS_Master_Transmit_IT(&hsmbus4, k_controller_addrs[ctrl], tx_buf,2U, SMBUS_LAST_FRAME_NO_PEC);
-    //     }
-    // }
-
-    // OD_entry_t *fan_entries[] = {
-    //     OD_ENTRY_H2100,
-    //     OD_ENTRY_H2101,
-    //     OD_ENTRY_H2102,
-    //     OD_ENTRY_H2103,
-    //     OD_ENTRY_H2104,
-    //     OD_ENTRY_H2105,
-    // };
-    //
-    // fan_configs[0] = (fan_config_t) {0, 0x2EU, 0x3CU, 0x3DU, 0x3EU, &OD_PERSIST_COMM.x2100_fan_1_w};
-    // fan_configs[1] = (fan_config_t) {1, 0x2EU, 0x4CU, 0x4DU, 0x4EU, &OD_PERSIST_COMM.x2101_fan_2_w};
-    // fan_configs[2] = (fan_config_t) {2, 0x2EU, 0x5CU, 0x5DU, 0x5EU, &OD_PERSIST_COMM.x2102_fan_3_w};
-    // fan_configs[3] = (fan_config_t) {3, 0x2FU, 0x3CU, 0x3DU, 0x3EU, &OD_PERSIST_COMM.x2103_fan_4_w};
-    // fan_configs[4] = (fan_config_t) {4, 0x2FU, 0x4CU, 0x4DU, 0x4EU, &OD_PERSIST_COMM.x2104_fan_5_w};
-    // fan_configs[5] = (fan_config_t) {5, 0x2FU, 0x5CU, 0x5DU, 0x5EU, &OD_PERSIST_COMM.x2105_fan_6_w};
-    //
-    // for(size_t i = 0U; i < sizeof(fan_entries) / sizeof(fan_entries[0]); i++) {
-    //     fan_extensions[i].object = &fan_configs[i];
-    //     fan_extensions[i].read = NULL;
-    //     fan_extensions[i].write = fan_callback;
-    //     OD_extension_init(fan_entries[i], &fan_extensions[i]);
-    // }
-
 
 #if (CO_CONFIG_STORAGE) & CO_CONFIG_STORAGE_ENABLE
     static CO_storage_t storage;
