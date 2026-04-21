@@ -84,6 +84,13 @@ const osThreadAttr_t od_update_attributes = {
   .priority = (osPriority_t) osPriorityAboveNormal,
   .stack_size = 256 * 4
 };
+/* Definitions for fan_update */
+osThreadId_t fan_updateHandle;
+const osThreadAttr_t fan_update_attributes = {
+  .name = "fan_update",
+  .priority = (osPriority_t) osPriorityAboveNormal,
+  .stack_size = 128 * 4
+};
 /* USER CODE BEGIN PV */
 // Need to add each pin as they're created won't update automatically
 HSEN_Pin_t hsen_pins[7] = {
@@ -114,6 +121,7 @@ void smbus_task_start(void *argument);
 void read_fan_start(void *argument);
 void canopen_task_start(void *argument);
 void od_update_start(void *argument);
+void fan_update_start(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -201,6 +209,9 @@ int main(void)
 
   /* creation of od_update */
   od_updateHandle = osThreadNew(od_update_start, NULL, &od_update_attributes);
+
+  /* creation of fan_update */
+  fan_updateHandle = osThreadNew(fan_update_start, NULL, &fan_update_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -660,6 +671,8 @@ void smbus_task_start(void *argument)
     piobuf = STACK_SMBUS_GetBuffer(&context1);
 
     const uint8_t k_fan_settings_regs[] = {0x32U, 0x42U, 0x52U};
+    const uint8_t k_fan_target_lb_regs[] = {0x3CU, 0x4CU, 0x5CU};
+    const uint8_t k_fan_target_hb_regs[] = {0x3DU, 0x4DU, 0x5DU};
 
     for (uint8_t i = 0; i < (uint8_t)(sizeof(k_controller_addrs)/sizeof(k_controller_addrs[0])); i++) {
         // context1 is defined after hsmbus4 init
@@ -675,45 +688,58 @@ void smbus_task_start(void *argument)
             STACK_SMBUS_HostCommand(&context1, &WRITE_FSC_SETTINGS, k_controller_addrs[i], WRITE);
             while (STACK_SMBUS_IsBusy(&context1)) {osDelay(1);}
         }
+        const uint16_t rpm = 2000U;
+        const uint16_t tach = 3932160U * 2 / rpm;
+        for (uint8_t j = 0; j < sizeof(k_fan_settings_regs)/sizeof(k_fan_settings_regs[0]); j++) {
+            piobuf = STACK_SMBUS_GetBuffer(&context1);
+            st_command_t TEST_FAN_SPEED = {k_fan_target_lb_regs[j], WRITE, 2, 0};
+            piobuf[0] = (uint8_t)((tach & 0x1FU) << 3);
+            STACK_SMBUS_HostCommand(&context1, &TEST_FAN_SPEED, k_controller_addrs[i], WRITE);
+            while (STACK_SMBUS_IsBusy(&context1)) {osDelay(1);}
+        }
+        for (uint8_t j = 0; j < sizeof(k_fan_settings_regs)/sizeof(k_fan_settings_regs[0]); j++) {
+            piobuf = STACK_SMBUS_GetBuffer(&context1);
+            st_command_t TEST_FAN_SPEED = {k_fan_target_hb_regs[j], WRITE, 2, 0};
+            piobuf[0] = (uint8_t)(tach >> 5);
+            STACK_SMBUS_HostCommand(&context1, &TEST_FAN_SPEED, k_controller_addrs[i], WRITE);
+            while (STACK_SMBUS_IsBusy(&context1)) {osDelay(1);}
+        }
     }
     smbus_cmd_t smbus_cmd;
     for (;;) {
         // Thread waits until a SMBus command is queued
-    //     if (osMessageQueueGet(smbus_queueHandle, &smbus_cmd, NULL, 0) == osOK) {
-    //         piobuf = STACK_SMBUS_GetBuffer(&context1);
-    //         piobuf[0] = smbus_cmd.data;
-    //         STACK_SMBUS_HostCommand(&context1, &smbus_cmd.command, smbus_cmd.controller_addr, smbus_cmd.write ? WRITE : READ);
-    //         while (STACK_SMBUS_IsBusy(&context1)) {osDelay(1);}
-    //         if (!smbus_cmd.write) {
-    //             const uint8_t read = piobuf[0];
-    //             // Obtain the lb if the read was for fan tach
-    //             if ((0x0FU & smbus_cmd.command.cmnd_code) == 0xE ) {
-    //                 piobuf = STACK_SMBUS_GetBuffer(&context1);
-    //                 smbus_cmd.command.cmnd_code += 0x01U;
-    //                 piobuf[0] = smbus_cmd.data;
-    //                 STACK_SMBUS_HostCommand(&context1, &smbus_cmd.command, smbus_cmd.controller_addr, smbus_cmd.write ? WRITE : READ);
-    //                 while (STACK_SMBUS_IsBusy(&context1)) {osDelay(1);}
-    //                 const uint16_t lb = piobuf[0];
-    //                 const uint16_t tach = ((uint16_t)read << 8 | lb) >> 3;
-    //
-    //                 // Figure out fan number
-    //                 const uint8_t  ctrler_fan_num = (smbus_cmd.command.cmnd_code >> 4) - 0x2U; // EXAMPLE: 0x30U >> 4 = 0x3U; 0x3U - 0x2U = 0x1U or fan1
-    //                 const uint8_t fan_num = (smbus_cmd.controller_addr == 0x5CU ? 0 : 3) + (ctrler_fan_num);
-    //                 fan_tach_t fan_tach = {tach, fan_num};
-    //
-    //                 // If queue is full will hang until it's not full
-    //                 osMessageQueuePut(tach_queueHandle, &fan_tach, 0, osWaitForever);
-    //             }
-    //             else {
-    //                 // Add to some other read queue (not needed currently)
-    //             }
-    //         }
-    //     }
-    //     osDelay(1);
-        HAL_GPIO_WritePin(USER_B_GPIO_Port, USER_B_Pin, GPIO_PIN_RESET);
-        osDelay(200);
-        HAL_GPIO_WritePin(USER_B_GPIO_Port, USER_B_Pin, GPIO_PIN_SET);
-        osDelay(200);
+    // if (osMessageQueueGet(smbus_queueHandle, &smbus_cmd, NULL, 0) == osOK) {
+        osMessageQueueGet(smbus_queueHandle, &smbus_cmd, NULL, osWaitForever);
+        piobuf = STACK_SMBUS_GetBuffer(&context1);
+        piobuf[0] = smbus_cmd.data;
+        STACK_SMBUS_HostCommand(&context1, &smbus_cmd.command, smbus_cmd.controller_addr, smbus_cmd.write ? WRITE : READ);
+        while (STACK_SMBUS_IsBusy(&context1)) {osDelay(1);}
+        if (!smbus_cmd.write) {
+            const uint8_t read = piobuf[0];
+            // Obtain the lb if the read was for fan tach
+            if ((0x0FU & smbus_cmd.command.cmnd_code) == 0xE ) {
+                piobuf = STACK_SMBUS_GetBuffer(&context1);
+                smbus_cmd.command.cmnd_code += 0x01U;
+                piobuf[0] = smbus_cmd.data;
+                STACK_SMBUS_HostCommand(&context1, &smbus_cmd.command, smbus_cmd.controller_addr, smbus_cmd.write ? WRITE : READ);
+                while (STACK_SMBUS_IsBusy(&context1)) {osDelay(1);}
+                const uint16_t lb = piobuf[0];
+                const uint16_t tach = ((uint16_t)read << 8 | lb) >> 3;
+
+                // Figure out fan number
+                const uint8_t  ctrler_fan_num = (smbus_cmd.command.cmnd_code >> 4) - 0x2U; // EXAMPLE: 0x30U >> 4 = 0x3U; 0x3U - 0x2U = 0x1U or fan1
+                const uint8_t fan_num = (smbus_cmd.controller_addr == 0x5CU ? 0 : 3) + (ctrler_fan_num);
+                fan_tach_t fan_tach = {tach, fan_num};
+
+                // If queue is full will hang until it's not full
+                osMessageQueuePut(tach_queueHandle, &fan_tach, 0, osWaitForever);
+            }
+            else {
+                // Add to some other read queue (not needed currently)
+            }
+        // }
+    }
+    osDelay(1);
     }
   /* USER CODE END 5 */
 }
@@ -731,22 +757,22 @@ void read_fan_start(void *argument)
     /* Infinite loop */
     const uint8_t k_fan_tach_regs[] = {0x3EU, 0x4EU, 0x5EU};
     for(;;) {
-    //     for (uint8_t i = 0; i < (uint8_t)(sizeof(k_controller_addrs)/sizeof(k_controller_addrs[0])); i++) {
-    //         for (uint8_t j = 0; j < (uint8_t)(sizeof(k_fan_tach_regs)/sizeof(k_fan_tach_regs[0])); j++) {
-    //         #pragma clang diagnostic push
-    //         #pragma clang diagnostic ignored "-Wmissing-braces"
-    //             smbus_cmd_t smbus_cmd = {0, k_controller_addrs[i], k_fan_tach_regs[j], false};
-    //         #pragma clang diagnostic pop
-    //             osMessageQueuePut(smbus_queueHandle, &smbus_cmd, 0, osWaitForever);
-    //         }
-    //     }
-        // osDelay(100);
-        HAL_GPIO_WritePin(USER_R_GPIO_Port, USER_R_Pin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(USER_G_GPIO_Port, USER_G_Pin, GPIO_PIN_RESET);
-        osDelay(200);
-        HAL_GPIO_WritePin(USER_R_GPIO_Port, USER_R_Pin, GPIO_PIN_SET);
-        HAL_GPIO_WritePin(USER_G_GPIO_Port, USER_G_Pin, GPIO_PIN_SET);
-        osDelay(200);
+    for (uint8_t i = 0; i < (uint8_t)(sizeof(k_controller_addrs)/sizeof(k_controller_addrs[0])); i++) {
+        for (uint8_t j = 0; j < (uint8_t)(sizeof(k_fan_tach_regs)/sizeof(k_fan_tach_regs[0])); j++) {
+        #pragma clang diagnostic push
+        #pragma clang diagnostic ignored "-Wmissing-braces"
+            smbus_cmd_t smbus_cmd = {0, k_controller_addrs[i], k_fan_tach_regs[j], false};
+        #pragma clang diagnostic pop
+            osMessageQueuePut(smbus_queueHandle, &smbus_cmd, 0, osWaitForever);
+        }
+    }
+        osDelay(100);
+        // HAL_GPIO_WritePin(USER_R_GPIO_Port, USER_R_Pin, GPIO_PIN_RESET);
+        // HAL_GPIO_WritePin(USER_G_GPIO_Port, USER_G_Pin, GPIO_PIN_RESET);
+        // osDelay(200);
+        // HAL_GPIO_WritePin(USER_R_GPIO_Port, USER_R_Pin, GPIO_PIN_SET);
+        // HAL_GPIO_WritePin(USER_G_GPIO_Port, USER_G_Pin, GPIO_PIN_SET);
+        // osDelay(200);
     }
   /* USER CODE END read_fan_start */
 }
@@ -813,6 +839,24 @@ void od_update_start(void *argument)
         osDelay(1);
     }
   /* USER CODE END od_update_start */
+}
+
+/* USER CODE BEGIN Header_fan_update_start */
+/**
+* @brief Function implementing the fan_update thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_fan_update_start */
+void fan_update_start(void *argument)
+{
+  /* USER CODE BEGIN fan_update_start */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END fan_update_start */
 }
 
 /**
