@@ -105,7 +105,9 @@ HSEN_Pin_t hsen_pins[7] = {
 SMBUS_StackHandleTypeDef context1;
 osMessageQueueId_t smbus_queueHandle;
 osMessageQueueId_t tach_queueHandle;
+
 const uint8_t k_controller_addrs[] = {0x5C, 0x5E};
+const uint32_t k_rpm_tach_const = 3932160U;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -610,7 +612,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, HSDIAG3_Pin|HSDIAG4_Pin|HSEN4_Pin|I_AUX2_Pin
-                          |I_AUX1_Pin|I_AUX2B15_Pin, GPIO_PIN_RESET);
+                          |I_AUX1_Pin|THERM_EN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : USER_R_Pin USER_G_Pin USER_B_Pin HSEN3_Pin */
   GPIO_InitStruct.Pin = USER_R_Pin|USER_G_Pin|USER_B_Pin|HSEN3_Pin;
@@ -629,9 +631,9 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : HSDIAG3_Pin HSDIAG4_Pin HSEN4_Pin I_AUX2_Pin
-                           I_AUX1_Pin I_AUX2B15_Pin */
+                           I_AUX1_Pin THERM_EN_Pin */
   GPIO_InitStruct.Pin = HSDIAG3_Pin|HSDIAG4_Pin|HSEN4_Pin|I_AUX2_Pin
-                          |I_AUX1_Pin|I_AUX2B15_Pin;
+                          |I_AUX1_Pin|THERM_EN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -667,6 +669,7 @@ static void MX_GPIO_Init(void)
 void smbus_task_start(void *argument)
 {
   /* USER CODE BEGIN 5 */
+    HAL_GPIO_WritePin(THERM_EN_GPIO_Port, THERM_EN_Pin, GPIO_PIN_SET);
     uint8_t *piobuf = NULL;
     piobuf = STACK_SMBUS_GetBuffer(&context1);
 
@@ -684,31 +687,31 @@ void smbus_task_start(void *argument)
             piobuf = STACK_SMBUS_GetBuffer(&context1);
             // FSC is the closed loop mode
             st_command_t WRITE_FSC_SETTINGS = {k_fan_settings_regs[j], WRITE, 2, 0};
-            piobuf[0] = 0x80U | 0x2BU;
+            piobuf[0] = 0xAB;
             STACK_SMBUS_HostCommand(&context1, &WRITE_FSC_SETTINGS, k_controller_addrs[i], WRITE);
             while (STACK_SMBUS_IsBusy(&context1)) {osDelay(1);}
         }
-        const uint16_t rpm = 2000U;
-        const uint16_t tach = 3932160U * 2 / rpm;
-        for (uint8_t j = 0; j < sizeof(k_fan_settings_regs)/sizeof(k_fan_settings_regs[0]); j++) {
-            piobuf = STACK_SMBUS_GetBuffer(&context1);
-            st_command_t TEST_FAN_SPEED = {k_fan_target_lb_regs[j], WRITE, 2, 0};
-            piobuf[0] = (uint8_t)((tach & 0x1FU) << 3);
-            STACK_SMBUS_HostCommand(&context1, &TEST_FAN_SPEED, k_controller_addrs[i], WRITE);
-            while (STACK_SMBUS_IsBusy(&context1)) {osDelay(1);}
-        }
-        for (uint8_t j = 0; j < sizeof(k_fan_settings_regs)/sizeof(k_fan_settings_regs[0]); j++) {
-            piobuf = STACK_SMBUS_GetBuffer(&context1);
-            st_command_t TEST_FAN_SPEED = {k_fan_target_hb_regs[j], WRITE, 2, 0};
-            piobuf[0] = (uint8_t)(tach >> 5);
-            STACK_SMBUS_HostCommand(&context1, &TEST_FAN_SPEED, k_controller_addrs[i], WRITE);
-            while (STACK_SMBUS_IsBusy(&context1)) {osDelay(1);}
-        }
+    //     const uint16_t rpm = 10000U;
+    //     //FIXME: Implement this logic on any fan rpm write
+    //     const uint16_t tach = rpm >= 1000U ? k_rpm_tach_const * 2 / rpm : 0xFFFFU; // As per EMC2303-1 Datasheet 0xFFFF = 0 RPM
+    //     for (uint8_t j = 0; j < sizeof(k_fan_settings_regs)/sizeof(k_fan_settings_regs[0]); j++) {
+    //         piobuf = STACK_SMBUS_GetBuffer(&context1);
+    //         st_command_t TEST_FAN_SPEED = {k_fan_target_lb_regs[j], WRITE, 2, 0};
+    //         piobuf[0] = (uint8_t)((tach & 0x1FU) << 3);
+    //         OD_PERSIST_COMM.x2001_fan_2_r = piobuf[0];
+    //         STACK_SMBUS_HostCommand(&context1, &TEST_FAN_SPEED, k_controller_addrs[i], WRITE);
+    //         while (STACK_SMBUS_IsBusy(&context1)) {osDelay(1);}
+    //         piobuf = STACK_SMBUS_GetBuffer(&context1);
+    //         st_command_t TEST_HB = {k_fan_target_hb_regs[j], WRITE, 2, 0};
+    //         piobuf[0] = (uint8_t)(tach >> 5);
+    //         OD_PERSIST_COMM.x2000_fan_1_r = piobuf[0];
+    //         STACK_SMBUS_HostCommand(&context1, &TEST_HB, k_controller_addrs[i], WRITE);
+    //         while (STACK_SMBUS_IsBusy(&context1)) {osDelay(1);}
+    //     }
     }
     smbus_cmd_t smbus_cmd;
     for (;;) {
         // Thread waits until a SMBus command is queued
-    // if (osMessageQueueGet(smbus_queueHandle, &smbus_cmd, NULL, 0) == osOK) {
         osMessageQueueGet(smbus_queueHandle, &smbus_cmd, NULL, osWaitForever);
         piobuf = STACK_SMBUS_GetBuffer(&context1);
         piobuf[0] = smbus_cmd.data;
@@ -718,27 +721,31 @@ void smbus_task_start(void *argument)
             const uint8_t read = piobuf[0];
             // Obtain the lb if the read was for fan tach
             if ((0x0FU & smbus_cmd.command.cmnd_code) == 0xE ) {
-                piobuf = STACK_SMBUS_GetBuffer(&context1);
                 smbus_cmd.command.cmnd_code += 0x01U;
+                piobuf = STACK_SMBUS_GetBuffer(&context1);
                 piobuf[0] = smbus_cmd.data;
                 STACK_SMBUS_HostCommand(&context1, &smbus_cmd.command, smbus_cmd.controller_addr, smbus_cmd.write ? WRITE : READ);
                 while (STACK_SMBUS_IsBusy(&context1)) {osDelay(1);}
-                const uint16_t lb = piobuf[0];
-                const uint16_t tach = ((uint16_t)read << 8 | lb) >> 3;
+                const uint8_t lb = piobuf[0];
+                const uint16_t tach = (((uint16_t)read) << 8 | lb);
 
                 // Figure out fan number
                 const uint8_t  ctrler_fan_num = (smbus_cmd.command.cmnd_code >> 4) - 0x2U; // EXAMPLE: 0x30U >> 4 = 0x3U; 0x3U - 0x2U = 0x1U or fan1
                 const uint8_t fan_num = (smbus_cmd.controller_addr == 0x5CU ? 0 : 3) + (ctrler_fan_num);
                 fan_tach_t fan_tach = {tach, fan_num};
-
                 // If queue is full will hang until it's not full
-                osMessageQueuePut(tach_queueHandle, &fan_tach, 0, osWaitForever);
+                // osMessageQueuePut(tach_queueHandle, &fan_tach, 0, osWaitForever);
+                // FIXME: just needed hl
+                // NOTE: TEST 1 FAN FOR RPM IF RPM READ STEP UP SHORTED T_T
+                if (fan_num == 1) {
+                    OD_PERSIST_COMM.x2001_fan_2_r = tach;
+                    OD_PERSIST_COMM.x2000_fan_1_r = tach >> 8;
+                }
             }
             else {
                 // Add to some other read queue (not needed currently)
             }
-        // }
-    }
+        }
     osDelay(1);
     }
   /* USER CODE END 5 */
@@ -757,22 +764,16 @@ void read_fan_start(void *argument)
     /* Infinite loop */
     const uint8_t k_fan_tach_regs[] = {0x3EU, 0x4EU, 0x5EU};
     for(;;) {
-    for (uint8_t i = 0; i < (uint8_t)(sizeof(k_controller_addrs)/sizeof(k_controller_addrs[0])); i++) {
-        for (uint8_t j = 0; j < (uint8_t)(sizeof(k_fan_tach_regs)/sizeof(k_fan_tach_regs[0])); j++) {
-        #pragma clang diagnostic push
-        #pragma clang diagnostic ignored "-Wmissing-braces"
-            smbus_cmd_t smbus_cmd = {0, k_controller_addrs[i], k_fan_tach_regs[j], false};
-        #pragma clang diagnostic pop
-            osMessageQueuePut(smbus_queueHandle, &smbus_cmd, 0, osWaitForever);
+        for (uint8_t i = 0; i < (uint8_t)(sizeof(k_controller_addrs)/sizeof(k_controller_addrs[0])); i++) {
+            for (uint8_t j = 0; j < (uint8_t)(sizeof(k_fan_tach_regs)/sizeof(k_fan_tach_regs[0])); j++) {
+                #pragma clang diagnostic push
+                #pragma clang diagnostic ignored "-Wmissing-braces"
+                smbus_cmd_t smbus_cmd = {0, k_controller_addrs[i], {k_fan_tach_regs[j], READ, 1, 1}, false};
+                #pragma clang diagnostic pop
+                osMessageQueuePut(smbus_queueHandle, &smbus_cmd, 0, osWaitForever);
+            }
         }
-    }
         osDelay(100);
-        // HAL_GPIO_WritePin(USER_R_GPIO_Port, USER_R_Pin, GPIO_PIN_RESET);
-        // HAL_GPIO_WritePin(USER_G_GPIO_Port, USER_G_Pin, GPIO_PIN_RESET);
-        // osDelay(200);
-        // HAL_GPIO_WritePin(USER_R_GPIO_Port, USER_R_Pin, GPIO_PIN_SET);
-        // HAL_GPIO_WritePin(USER_G_GPIO_Port, USER_G_Pin, GPIO_PIN_SET);
-        // osDelay(200);
     }
   /* USER CODE END read_fan_start */
 }
@@ -801,7 +802,6 @@ void canopen_task_start(void *argument)
   for(;;)
   {
       canopen_app_process();
-      // HAL_GPIO_WritePin(TERM_EN_GPIO_Port, TERM_EN_Pin, OD_PERSIST_COMM.x2301_thermal_en ? GPIO_PIN_SET : GPIO_PIN_RESET );
       vTaskDelay(pdMS_TO_TICKS(1));
   }
   /* USER CODE END canopen_task_start */
@@ -817,20 +817,19 @@ void canopen_task_start(void *argument)
 void od_update_start(void *argument)
 {
   /* USER CODE BEGIN od_update_start */
-    const uint32_t k_rpm_tach_const = 3932160;
     fan_tach_t test_tach = {16499, 0};
     for (uint8_t i = 0; i < 6U; i++) {
        test_tach.fan_num = test_tach.fan_num + 1;
         osMessageQueuePut(tach_queueHandle, &test_tach, 0, 0);
     }
-    uint8_t *fan_rpm_pointers[6] = {&OD_PERSIST_COMM.x2000_fan_1_r, &OD_PERSIST_COMM.x2001_fan_2_r, &OD_PERSIST_COMM.x2002_fan_3_r, &OD_PERSIST_COMM.x2003_fan_4_r, &OD_PERSIST_COMM.x2004_fan_5_r, &OD_PERSIST_COMM.x2005_fan_6_r};
-    uint8_t fan_rpm_len = sizeof(fan_rpm_pointers) / sizeof(fan_rpm_pointers[0]);
     /* Infinite loop */
     for(;;)
     {
+        uint8_t *fan_rpm_pointers[6] = {&OD_PERSIST_COMM.x2000_fan_1_r, &OD_PERSIST_COMM.x2001_fan_2_r, &OD_PERSIST_COMM.x2002_fan_3_r, &OD_PERSIST_COMM.x2003_fan_4_r, &OD_PERSIST_COMM.x2004_fan_5_r, &OD_PERSIST_COMM.x2005_fan_6_r};
+        uint8_t fan_rpm_len = sizeof(fan_rpm_pointers) / sizeof(fan_rpm_pointers[0]);
         fan_tach_t fan_tach;
         while (osMessageQueueGet(tach_queueHandle, &fan_tach, NULL, 0U) == osOK) {
-            const uint16_t fan_rpm = k_rpm_tach_const * 2 / fan_tach.tach;
+            const uint16_t fan_rpm = k_rpm_tach_const / fan_tach.tach;
             uint8_t byte_rpm = rpm_to_byte(fan_rpm);
             if (fan_tach.fan_num > 0 && fan_tach.fan_num <= fan_rpm_len) {
                 *fan_rpm_pointers[fan_tach.fan_num-1] = byte_rpm;
@@ -851,10 +850,27 @@ void od_update_start(void *argument)
 void fan_update_start(void *argument)
 {
   /* USER CODE BEGIN fan_update_start */
-  /* Infinite loop */
+    uint8_t *fan_rpm_pointers_r[6] = {&OD_PERSIST_COMM.x2000_fan_1_r, &OD_PERSIST_COMM.x2001_fan_2_r, &OD_PERSIST_COMM.x2002_fan_3_r, &OD_PERSIST_COMM.x2003_fan_4_r, &OD_PERSIST_COMM.x2004_fan_5_r, &OD_PERSIST_COMM.x2005_fan_6_r};
+    uint8_t *fan_rpm_pointers_w[6] = {&OD_PERSIST_COMM.x2100_fan_1_w, &OD_PERSIST_COMM.x2101_fan_2_w, &OD_PERSIST_COMM.x2102_fan_3_w, &OD_PERSIST_COMM.x2103_fan_4_w, &OD_PERSIST_COMM.x2104_fan_5_w, &OD_PERSIST_COMM.x2105_fan_6_w};
+    const uint8_t k_fan_target_lb_regs[] = {0x3CU, 0x4CU, 0x5CU};
+    const uint8_t k_fan_target_hb_regs[] = {0x3DU, 0x4DU, 0x5DU};
+    /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+      // for (uint8_t i = 0; i < (uint8_t)(sizeof(fan_rpm_pointers_r)/sizeof(fan_rpm_pointers_r[0])); i++) {
+      //     if (fan_rpm_pointers_r[i] != fan_rpm_pointers_w[i]) {
+      //         const uint16_t rpm = byte_to_rpm(*fan_rpm_pointers_w[i]);
+      //         const uint16_t tach = rpm >= 500 ? k_rpm_tach_const / rpm : 0xFFFF;
+      //         const uint8_t lb = (uint8_t)((tach & 0x1FU) << 3);
+      //         smbus_cmd_t smbus_cmd = {lb, k_controller_addrs[i/3], {k_fan_target_lb_regs[i], WRITE, 2, 0}, false};
+      //         osMessageQueuePut(smbus_queueHandle, &smbus_cmd, 0, osWaitForever);
+      //         const uint8_t hb = (uint8_t)(tach >> 5);
+      //         smbus_cmd.data = hb;
+      //         smbus_cmd.command.cmnd_code = k_fan_target_hb_regs[i];
+      //         osMessageQueuePut(smbus_queueHandle, &smbus_cmd, 0, osWaitForever);
+      //     }
+      // }
+      osDelay(100);
   }
   /* USER CODE END fan_update_start */
 }
