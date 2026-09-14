@@ -23,8 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdbool.h>
-#include "CO_app_STM32.h"
-#include "../../PDM/Src/pdm.c"
+#include "../../PDM/Inc/pdm.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -51,8 +50,6 @@ FDCAN_HandleTypeDef hfdcan1;
 I2C_HandleTypeDef hi2c3;
 SMBUS_HandleTypeDef hsmbus4;
 
-TIM_HandleTypeDef htim17;
-
 /* USER CODE BEGIN PV */
 // Need to add each pin as they're created won't update automatically
 HSEN_Pin_t hsen_pins[7] = {
@@ -74,7 +71,6 @@ static void MX_ADC2_Init(void);
 static void MX_FDCAN1_Init(void);
 static void MX_I2C3_Init(void);
 static void MX_I2C4_SMBUS_Init(void);
-static void MX_TIM17_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -124,9 +120,15 @@ int main(void)
   MX_FDCAN1_Init();
   MX_I2C3_Init();
   MX_I2C4_SMBUS_Init();
-  MX_TIM17_Init();
   /* USER CODE BEGIN 2 */
-    pdm_init();
+   uint16_t i = 0;
+    while (i < 5000) {
+        HAL_GPIO_TogglePin(USER_R_GPIO_Port, USER_R_Pin);
+        HAL_GPIO_TogglePin(USER_G_GPIO_Port, USER_G_Pin);
+        HAL_GPIO_TogglePin(USER_B_GPIO_Port, USER_B_Pin);
+        HAL_Delay(50);
+        i += 50;
+    }
   /* USER CODE END 2 */
 
   MX_ThreadX_Init();
@@ -447,38 +449,6 @@ static void MX_I2C4_SMBUS_Init(void)
 }
 
 /**
-  * @brief TIM17 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM17_Init(void)
-{
-
-  /* USER CODE BEGIN TIM17_Init 0 */
-
-  /* USER CODE END TIM17_Init 0 */
-
-  /* USER CODE BEGIN TIM17_Init 1 */
-
-  /* USER CODE END TIM17_Init 1 */
-  htim17.Instance = TIM17;
-  htim17.Init.Prescaler = 63;
-  htim17.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim17.Init.Period = 1000;
-  htim17.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim17.Init.RepetitionCounter = 0;
-  htim17.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim17) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN TIM17_Init 2 */
-
-  /* USER CODE END TIM17_Init 2 */
-
-}
-
-/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -550,15 +520,7 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-// // in text but not video?
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-    if (htim->Instance == TIM17) {
-        canopen_app_interrupt();
-    }
-    // HAL_GPIO_WritePin(USER_R_GPIO_Port, USER_R_Pin, GPIO_PIN_SET);
-    // HAL_GPIO_WritePin(USER_G_GPIO_Port, USER_G_Pin, GPIO_PIN_SET);
-    // HAL_GPIO_WritePin(USER_B_GPIO_Port, USER_B_Pin, GPIO_PIN_SET);
-}
+
 /* USER CODE END 4 */
 
 /**

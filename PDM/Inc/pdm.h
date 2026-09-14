@@ -10,3 +10,7 @@
 #endif //PDM_PDM_H
 
 UINT pdm_threads_create(TX_BYTE_POOL* byte_pool);
+
+void pdm_main_loop();
+
+void pdm_init();

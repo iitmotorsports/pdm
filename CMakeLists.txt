@@ -72,16 +72,12 @@ file(GLOB_RECURSE PDM_CODE_SOURCES
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
-    ${CANOPENNODE_SOURCES}
-    ${CANOPENNODESTM32_SOURCES}
     ${PDM_CODE_SOURCES}
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
-    ${CMAKE_CURRENT_SOURCE_DIR}/CANopenNode
-    ${CMAKE_CURRENT_SOURCE_DIR}/CANopenNode_STM32
     ${CMAKE_CURRENT_SOURCE_DIR}/PDM
     ${CMAKE_CURRENT_SOURCE_DIR}/PDM/Src
     ${CMAKE_CURRENT_SOURCE_DIR}/PDM/Inc
