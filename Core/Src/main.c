@@ -23,7 +23,7 @@
 /* USER CODE BEGIN Includes */
 #include <stdbool.h>
 #include "CO_app_STM32.h"
-#include "OD.h"
+#include "pdm.c"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -125,32 +125,14 @@ int main(void)
   MX_I2C4_SMBUS_Init();
   MX_TIM17_Init();
   /* USER CODE BEGIN 2 */
-    CANopenNodeSTM32 canopenNodeSTM32;
-    canopenNodeSTM32.CANHandle = &hfdcan1;
-    canopenNodeSTM32.HWInitFunction = MX_FDCAN1_Init;
-    canopenNodeSTM32.timerHandle = &htim17;
-    canopenNodeSTM32.desiredNodeID = 29; // ADD THIS TO COMID TO GET TPDO ID
-    canopenNodeSTM32.baudrate = 125;
-    canopen_app_init(&canopenNodeSTM32);
-    HAL_GPIO_WritePin(TERM_EN_GPIO_Port, TERM_EN_Pin, GPIO_PIN_SET);
+    pdm_init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-      canopen_app_process();
-      OD_set_u32(OD_find(OD, 0x6000), 0x00, 123, false); // The correct way
-      // OD_PERSIST_COMM.x6000_counter++; // The simple way
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
-    HAL_GPIO_WritePin(HSEN1_GPIO_Port, HSEN1_Pin, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(HSEN2_GPIO_Port, HSEN2_Pin, GPIO_PIN_SET);
-      HAL_Delay(250);
-      HAL_GPIO_WritePin(HSEN1_GPIO_Port, HSEN1_Pin, GPIO_PIN_RESET);
-      HAL_GPIO_WritePin(HSEN2_GPIO_Port, HSEN2_Pin, GPIO_PIN_RESET);
-      HAL_Delay(250);
+      pdm_main_loop();
   }
   /* USER CODE END 3 */
 }

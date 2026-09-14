@@ -32,7 +32,9 @@ message("Build type: " ${CMAKE_BUILD_TYPE})
 enable_language(C ASM)
 
 # Create an executable object type
-add_executable(${CMAKE_PROJECT_NAME})
+add_executable(${CMAKE_PROJECT_NAME}
+        PDM/pdm.c
+        PDM/pdm.c)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
@@ -59,11 +61,16 @@ file(GLOB_RECURSE CANOPENNODESTM32_SOURCES
     "CANopenNode_STM32/*.c"
 )
 
+file(GLOB_RECURSE PDM_CODE_SOURCES
+        "PDM/*.c"
+)
+
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     ${CANOPENNODE_SOURCES}
     ${CANOPENNODESTM32_SOURCES}
+    ${PDM_CODE_SOURCES}
 )
 
 # Add include paths
@@ -71,6 +78,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
     ${CMAKE_CURRENT_SOURCE_DIR}/CANopenNode
     ${CMAKE_CURRENT_SOURCE_DIR}/CANopenNode_STM32
+        ${CMAKE_CURRENT_SOURCE_DIR}/PDM
 )
 
 # Add project symbols (macros)
