@@ -19,7 +19,7 @@ jobs:
           style: 'file'
           tidy-checks: ''
           thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
-          ignore: 'CANopenNode/|CANopenNode_STM32/|Drivers/|Middlewares/'
+          ignore: 'Drivers/|Middlewares/|SMBus_PMBus_Stack/'
       - name: Fail fast?!
         if: steps.linter.outputs.checks-failed > 0
         run: |
