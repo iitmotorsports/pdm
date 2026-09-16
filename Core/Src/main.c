@@ -121,14 +121,7 @@ int main(void)
   MX_I2C3_Init();
   MX_I2C4_SMBUS_Init();
   /* USER CODE BEGIN 2 */
-   uint16_t i = 0;
-    while (i < 5000) {
-        HAL_GPIO_TogglePin(USER_R_GPIO_Port, USER_R_Pin);
-        HAL_GPIO_TogglePin(USER_G_GPIO_Port, USER_G_Pin);
-        HAL_GPIO_TogglePin(USER_B_GPIO_Port, USER_B_Pin);
-        HAL_Delay(50);
-        i += 50;
-    }
+    pdm_init();
   /* USER CODE END 2 */
 
   MX_ThreadX_Init();

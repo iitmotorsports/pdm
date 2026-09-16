@@ -1,7 +1,7 @@
 #include "main.h"
 #include "pdm.h"
-
 #include "pdm_status_led.h"
+#include "./can/pdm_can.h"
 
 #define PDM_STATUS_LED_STACK_SIZE 512
 #define PDM_STATUS_LED_PRIORITY 20
@@ -10,7 +10,15 @@ static TX_THREAD pdm_status_led_thread;
 static uint8_t pdm_status_led_stack[PDM_STATUS_LED_STACK_SIZE];
 
 void pdm_init() {
-
+    uint16_t i = 0;
+    while (i < 5000) {
+        HAL_GPIO_TogglePin(USER_R_GPIO_Port, USER_R_Pin);
+        HAL_GPIO_TogglePin(USER_G_GPIO_Port, USER_G_Pin);
+        HAL_GPIO_TogglePin(USER_B_GPIO_Port, USER_B_Pin);
+        HAL_Delay(50);
+        i += 50;
+    }
+    pdm_can_init();
 }
 
 void pdm_main_loop() {
