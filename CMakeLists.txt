@@ -50,7 +50,9 @@ add_executable(${CMAKE_PROJECT_NAME}
         PDM/Src/fans/pdm_fans.c
         PDM/Inc/fans/pdm_fans.h
         PDM/Src/can/pdm_can.c
-        PDM/Inc/can/pdm_can.h)
+        PDM/Inc/can/pdm_can.h
+        PDM/Src/can/pdm_can_heartbeat.c
+        PDM/Inc/can/pdm_can_heartbeat.h)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)

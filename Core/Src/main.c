@@ -549,6 +549,11 @@ void Error_Handler(void)
   __disable_irq();
   while (1)
   {
+      HAL_GPIO_TogglePin(USER_R_GPIO_Port, USER_R_Pin);
+      HAL_GPIO_TogglePin(USER_G_GPIO_Port, USER_G_Pin);
+      HAL_GPIO_TogglePin(USER_B_GPIO_Port, USER_B_Pin);
+        //TODO: print error.
+      HAL_Delay(1000);
   }
   /* USER CODE END Error_Handler_Debug */
 }

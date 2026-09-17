@@ -69,4 +69,7 @@ void pdm_can_tx(const uint8_t tx_data[], uint8_t tx_data_len, uint32_t tx_id) {
 
 void pdm_can_rx(uint8_t rx_data[], uint8_t rx_data_len, uint32_t rx_id) {
     // I imagine some sort of handler based on rx_id
+    if (rx_id == 0x69U) {
+        pdm_can_tx(rx_data, rx_data_len, rx_id);
+    }
 }
