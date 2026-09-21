@@ -11,6 +11,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - name: Install Build Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-arm-none-eabi binutils-arm-none-eabi libnewlib-arm-none-eabi ninja-build
+      - name: Generate compile_commands
+        run: cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON --preset Debug
       - uses: cpp-linter/cpp-linter-action@v2
         id: linter
         env:
@@ -18,10 +24,11 @@ jobs:
         with:
           style: 'file'
           tidy-checks: ''
+          database: 'build/Debug'
           thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
-          ignore: 'Drivers/|Middlewares/|SMBus_PMBus_Stack/'
+          ignore: 'Drivers/STM32G4xx_HAL_Driver/|Middlewares/|SMBus_PMBus_Stack/|Core/|build/|AZURE_RTOS/'
       - name: Fail fast?!
         if: steps.linter.outputs.checks-failed > 0
         run: |
-          echo "::error::${{steps.linter.outputs.checks-failed}} Linting failed. Please fix before merging."
+          echo "::error:: Linting failed. Please fix before merging."
           exit 1
