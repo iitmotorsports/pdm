@@ -26,7 +26,8 @@ jobs:
           tidy-checks: ''
           database: 'build/Debug'
           thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
-          ignore: 'Drivers/STM32G4xx_HAL_Driver/|Middlewares/|SMBus_PMBus_Stack/|Core/|build/|AZURE_RTOS/'
+          ignore: 'Drivers/|Middlewares/|SMBus_PMBus_Stack/|Core/|build/|AZURE_RTOS/'
+          extra-args: '--target=arm-none-eabi --gcc-toolchain=/usr'
       - name: Fail fast?!
         if: steps.linter.outputs.checks-failed > 0
         run: |
