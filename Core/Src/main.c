@@ -121,14 +121,7 @@ int main(void)
   MX_I2C3_Init();
   MX_I2C4_SMBUS_Init();
   /* USER CODE BEGIN 2 */
-   uint16_t i = 0;
-    while (i < 5000) {
-        HAL_GPIO_TogglePin(USER_R_GPIO_Port, USER_R_Pin);
-        HAL_GPIO_TogglePin(USER_G_GPIO_Port, USER_G_Pin);
-        HAL_GPIO_TogglePin(USER_B_GPIO_Port, USER_B_Pin);
-        HAL_Delay(50);
-        i += 50;
-    }
+    pdm_init();
   /* USER CODE END 2 */
 
   MX_ThreadX_Init();
@@ -444,6 +437,7 @@ static void MX_I2C4_SMBUS_Init(void)
   }
   /* USER CODE BEGIN I2C4_Init 2 */
 
+
   /* USER CODE END I2C4_Init 2 */
 
 }
@@ -475,7 +469,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, HSDIAG3_Pin|HSDIAG4_Pin|HSEN4_Pin|I_AUX2_Pin
-                          |I_AUX1_Pin|I_AUX2B15_Pin, GPIO_PIN_RESET);
+                          |I_AUX1_Pin|THERM_EN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : USER_R_Pin USER_G_Pin USER_B_Pin HSEN3_Pin */
   GPIO_InitStruct.Pin = USER_R_Pin|USER_G_Pin|USER_B_Pin|HSEN3_Pin;
@@ -494,9 +488,9 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : HSDIAG3_Pin HSDIAG4_Pin HSEN4_Pin I_AUX2_Pin
-                           I_AUX1_Pin I_AUX2B15_Pin */
+                           I_AUX1_Pin THERM_EN_Pin */
   GPIO_InitStruct.Pin = HSDIAG3_Pin|HSDIAG4_Pin|HSEN4_Pin|I_AUX2_Pin
-                          |I_AUX1_Pin|I_AUX2B15_Pin;
+                          |I_AUX1_Pin|THERM_EN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -556,6 +550,11 @@ void Error_Handler(void)
   __disable_irq();
   while (1)
   {
+      HAL_GPIO_TogglePin(USER_R_GPIO_Port, USER_R_Pin);
+      HAL_GPIO_TogglePin(USER_G_GPIO_Port, USER_G_Pin);
+      HAL_GPIO_TogglePin(USER_B_GPIO_Port, USER_B_Pin);
+        //TODO: print error.
+      HAL_Delay(1000);
   }
   /* USER CODE END Error_Handler_Debug */
 }
