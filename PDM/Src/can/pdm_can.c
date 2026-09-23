@@ -1,4 +1,5 @@
 #include "main.h"
+#include <stdint.h>
 #include "stm32g4xx_hal_gpio.h"
 #include "can/pdm_can.h"
 
@@ -42,7 +43,7 @@ void pdm_can_init() {
     HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
 }
 
-void pdm_can_tx(const uint8_t tx_data[], uint8_t tx_data_len, uint32_t tx_id) {
+void pdm_can_tx(const uint8_t tx_data[], uint8_t tx_data_len, uint16_t tx_id) {
     uint8_t payload[8] = {0};  // zero-init 8 bytes
     // Can't transmit more than 8 bytes
     if (tx_data_len > 8) {
@@ -67,9 +68,7 @@ void pdm_can_tx(const uint8_t tx_data[], uint8_t tx_data_len, uint32_t tx_id) {
     }
 }
 
-void pdm_can_rx(uint8_t rx_data[], uint8_t rx_data_len, uint32_t rx_id) {
+void pdm_can_rx(uint8_t rx_data[], uint8_t rx_data_len, uint16_t rx_id) {
     // I imagine some sort of handler based on rx_id
-    if (rx_id == 0x69U) {
-        pdm_can_tx(rx_data, rx_data_len, rx_id);
-    }
+    pdm_can_tx(rx_data, rx_data_len, rx_id);
 }

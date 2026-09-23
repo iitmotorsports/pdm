@@ -3,6 +3,7 @@
 #include "pdm_status_led.h"
 #include "can/pdm_can.h"
 #include "can/pdm_can_heartbeat.h"
+#include "fans/pdm_fans.h"
 
 #define PDM_STATUS_LED_STACK_SIZE 512
 #define PDM_STATUS_LED_PRIORITY 20
@@ -17,6 +18,7 @@ static TX_THREAD pdm_can_heartbeat_thread;
 static uint8_t pdm_can_heartbeat_stack[PDM_CAN_HEARTBEAT_STACK_SIZE];
 
 void pdm_init() {
+    // Show PDM is working before entering threads
     uint16_t i = 0;
     while (i < 5000) {
         HAL_GPIO_TogglePin(USER_R_GPIO_Port, USER_R_Pin);
@@ -26,6 +28,7 @@ void pdm_init() {
         i += 50;
     }
     pdm_can_init();
+    pdm_fans_init();
 }
 
 void pdm_main_loop() {
