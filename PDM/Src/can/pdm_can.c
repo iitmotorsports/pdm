@@ -1,9 +1,4 @@
-#include "main.h"
-#include <stdint.h>
-#include "stm32g4xx_hal_gpio.h"
 #include "can/pdm_can.h"
-
-#include <string.h>
 
 extern FDCAN_HandleTypeDef hfdcan1;
 
