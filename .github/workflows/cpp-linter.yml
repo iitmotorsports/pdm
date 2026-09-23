@@ -10,11 +10,9 @@ jobs:
   cpp-linter:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - name: Install Build Tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-arm-none-eabi binutils-arm-none-eabi libnewlib-arm-none-eabi ninja-build
+      - uses: actions/checkout@v7
+      - uses: carlosperate/arm-none-eabi-gcc-action@v1
+      - run: arm-none-eabi-gcc --version
       - name: Generate compile_commands
         run: cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON --preset Debug
       - uses: cpp-linter/cpp-linter-action@v2
@@ -25,7 +23,7 @@ jobs:
           style: 'file'
           tidy-checks: ''
           database: 'build/Debug'
-          thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
+          thread-comments: ${{ 'update' }}
           ignore: 'Drivers/|Middlewares/|SMBus_PMBus_Stack/|Core/|build/|AZURE_RTOS/'
           extra-args: '--target=arm-none-eabi --gcc-toolchain=/usr'
       - name: Fail fast?!
