@@ -10,7 +10,7 @@ jobs:
   cpp-linter:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v5
       - uses: carlosperate/arm-none-eabi-gcc-action@v1
       - run: arm-none-eabi-gcc --version
       - name: Generate compile_commands
@@ -23,9 +23,9 @@ jobs:
           style: 'file'
           tidy-checks: ''
           database: 'build/Debug'
-          thread-comments: ${{ 'update' }}
+          thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
           ignore: 'Drivers/|Middlewares/|SMBus_PMBus_Stack/|Core/|build/|AZURE_RTOS/'
-          extra-args: '--target=arm-none-eabi --gcc-toolchain=/usr'
+          extra-args: '--target=arm-none-eabi'
           verbosity: 'debug'
       - name: Fail fast?!
         if: steps.linter.outputs.checks-failed > 0
