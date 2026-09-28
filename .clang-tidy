@@ -1,3 +1,10 @@
-Checks: 'clang-diagnostic-*,bugprone-*,-readability-braces-around-statements'
+Checks: >
+  clang-diagnostic-*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
+  readability-braces-around-statements
+
 WarningsAsErrors: 'bugprone-*'
-HeaderFilterRegex: 'include/.*'
+
+HeaderFilterRegex: 'PDM/Inc/.*'
