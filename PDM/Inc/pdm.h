@@ -4,12 +4,12 @@
 
 #ifndef PDM_PDM_H
 #define PDM_PDM_H
-#include "tx_api.h"
 #include "main.h"
+#include "tx_api.h"
 
-#endif //PDM_PDM_H
+#endif // PDM_PDM_H
 
-UINT pdm_threads_create(TX_BYTE_POOL* byte_pool);
+UINT pdm_threads_create(TX_BYTE_POOL *byte_pool);
 
 void pdm_main_loop();
 

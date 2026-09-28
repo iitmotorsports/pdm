@@ -42,7 +42,6 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
@@ -92,8 +91,8 @@ void Error_Handler(void);
 #define F_ALERT1_GPIO_Port GPIOB
 #define I_AUX1_Pin GPIO_PIN_14
 #define I_AUX1_GPIO_Port GPIOB
-#define I_AUX2B15_Pin GPIO_PIN_15
-#define I_AUX2B15_GPIO_Port GPIOB
+#define THERM_EN_Pin GPIO_PIN_15
+#define THERM_EN_GPIO_Port GPIOB
 #define CAN_FLT_Pin GPIO_PIN_9
 #define CAN_FLT_GPIO_Port GPIOA
 #define TERM_EN_Pin GPIO_PIN_10
