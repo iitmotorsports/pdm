@@ -3,6 +3,7 @@
 #include "can/pdm_can_heartbeat.h"
 #include "fans/pdm_fans.h"
 #include "main.h"
+#include "../Inc/fans/pdm_fans_smbus_queue.h"
 #include "pdm_status_led.h"
 
 #define PDM_STATUS_LED_STACK_SIZE 512
@@ -28,6 +29,7 @@ void pdm_init() {
         i += 50;
     }
     pdm_can_init();
+    pdm_smbus_queue_init();
     // pdm_fans_init();
 }
 
