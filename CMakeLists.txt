@@ -45,7 +45,6 @@ add_executable(${CMAKE_PROJECT_NAME}
         PDM/Inc/pdm_status_led.h
         PDM/Src/fans/pdm_fans_send.c
         PDM/Inc/fans/pdm_fans_send.h
-        PDM/Inc/fans/pdm_fans_recieve.h
         PDM/Src/fans/pdm_fans_recieve.c
         PDM/Src/fans/pdm_fans.c
         PDM/Inc/fans/pdm_fans.h
