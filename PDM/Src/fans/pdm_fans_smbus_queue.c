@@ -35,7 +35,7 @@ VOID pdm_smbus_queue_thread_entry(ULONG thread_input) {
             // 1. Check if its a fan write
             // 2. Determine fan #
             // 3. Write speed to corresponding array slot
-            //  4. If not a fan write be very confused
+            //  4. If not a fan read be very confused
             switch (smbus_cmd -> command.cmnd_code) {
                 case READ_HB:
                     uint8_t fan_offset = smbus_cmd -> controller_addr == 0x5C ? 0 : 2;

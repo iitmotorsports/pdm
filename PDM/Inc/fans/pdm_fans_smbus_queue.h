@@ -10,5 +10,6 @@ extern SMBUS_StackHandleTypeDef context1;
 
 
 void pdm_smbus_queue_init();
+VOID pdm_smbus_queue_thread_entry(ULONG thread_input);
 
 #endif //PDM_PDM_SMBUS_QUEUE_H
