@@ -1,9 +1,6 @@
 #include "pdm.h"
-#include "can/pdm_can.h"
-#include "can/pdm_can_heartbeat.h"
-#include "fans/pdm_fans_smbus_queue.h"
-#include "main.h"
-#include "pdm_status_led.h"
+
+#include "fans/pdm_fans_send.h"
 
 #define PDM_STATUS_LED_STACK_SIZE 512
 #define PDM_STATUS_LED_PRIORITY 20
@@ -28,6 +25,12 @@ static uint8_t pdm_can_tx_stack[PDM_CAN_TX_STACK_SIZE];
 
 static TX_THREAD pdm_smbus_queue_thread;
 static uint8_t pdm_smbus_queue_stack[PDM_SMBUS_QUEUE_STACK_SIZE];
+
+#define PDM_FANS_TX_SPEED_STACK_SIZE 512
+#define PDM_FANS_TX_SPEED_PRIORITY 20
+
+static TX_THREAD pdm_fans_tx_speed_thread;
+static uint8_t pdm_fans_tx_speed_stack[PDM_FANS_TX_SPEED_STACK_SIZE];
 
 void pdm_init() {
     // Show PDM is working before entering threads
@@ -86,6 +89,15 @@ UINT pdm_threads_create(TX_BYTE_POOL *byte_pool) {
         pdm_smbus_queue_thread_entry, 0, pdm_smbus_queue_stack,
         PDM_SMBUS_QUEUE_STACK_SIZE, PDM_SMBUS_QUEUE_PRIORITY,
         PDM_SMBUS_QUEUE_PRIORITY, 1, TX_AUTO_START);
+    if (status != TX_SUCCESS) {
+        return TX_THREAD_ERROR;
+    }
+
+    status = tx_thread_create(
+        &pdm_fans_tx_speed_thread, "pdm_can_tx_fan_speed",
+        pdm_fans_tx_speed_thread_entry, 0, pdm_fans_tx_speed_stack,
+        PDM_FANS_TX_SPEED_STACK_SIZE, PDM_FANS_TX_SPEED_PRIORITY,
+        PDM_FANS_TX_SPEED_PRIORITY, 1, TX_AUTO_START);
     if (status != TX_SUCCESS) {
         return TX_THREAD_ERROR;
     }
