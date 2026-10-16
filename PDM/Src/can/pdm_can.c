@@ -59,6 +59,7 @@ void pdm_can_rx(uint8_t rx_data[], uint8_t rx_data_len, uint16_t rx_id) {
     switch (rx_id) {
         // I imagine some sort of handler based on rx_id
         default:
+            // TODO: This works for debugging but obviously don't want to just send back unrecognized CAN msgs
             pdm_can_tx(rx_data, rx_data_len, rx_id);
             break;
     }
