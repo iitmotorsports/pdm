@@ -43,13 +43,3 @@
 
 # build
 /build/
-
-# Example CANOpen projects
-CANopenNode/example
-
-# ccls cache
-/.ccls-cache/
-
-# direnv
-.envrc
-/.direnv/

@@ -31,8 +31,28 @@ message("Build type: " ${CMAKE_BUILD_TYPE})
 # Enable CMake support for ASM and C languages
 enable_language(C ASM)
 
+file(GLOB_RECURSE PDM_CODE_SOURCES
+        "PDM/Src/*.c"
+        "PDM/Inc/*.h"
+)
+
 # Create an executable object type
-add_executable(${CMAKE_PROJECT_NAME})
+add_executable(${CMAKE_PROJECT_NAME}
+        PDM/Src/pdm.c
+        PDM/Src/pdm.c
+        PDM/Inc/pdm.h
+        PDM/Src/pdm_status_led.c
+        PDM/Inc/pdm_status_led.h
+        PDM/Src/fans/pdm_fans_send.c
+        PDM/Inc/fans/pdm_fans_send.h
+        PDM/Inc/fans/pdm_fans_recieve.h
+        PDM/Src/fans/pdm_fans_recieve.c
+        PDM/Src/fans/pdm_fans.c
+        PDM/Inc/fans/pdm_fans.h
+        PDM/Src/can/pdm_can.c
+        PDM/Inc/can/pdm_can.h
+        PDM/Src/can/pdm_can_heartbeat.c
+        PDM/Inc/can/pdm_can_heartbeat.h)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
@@ -47,9 +67,19 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
 )
 
+
+# Add sources to executable
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE
+    # Add user sources here
+    ${PDM_CODE_SOURCES}
+)
+
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
+    ${CMAKE_CURRENT_SOURCE_DIR}/PDM
+    ${CMAKE_CURRENT_SOURCE_DIR}/PDM/Src
+    ${CMAKE_CURRENT_SOURCE_DIR}/PDM/Inc
 )
 
 # Add project symbols (macros)

@@ -17,11 +17,13 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#include "app_threadx.h"
 #include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdbool.h>
+#include "../../PDM/Inc/pdm.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -46,14 +48,18 @@ ADC_HandleTypeDef hadc2;
 FDCAN_HandleTypeDef hfdcan1;
 
 I2C_HandleTypeDef hi2c3;
-I2C_HandleTypeDef hi2c4;
+SMBUS_HandleTypeDef hsmbus4;
 
 /* USER CODE BEGIN PV */
-HSEN_Pin_t hsen_pins[4] = {
+// Need to add each pin as they're created won't update automatically
+HSEN_Pin_t hsen_pins[7] = {
     {HSEN1_GPIO_Port, HSEN1_Pin},
     {HSEN2_GPIO_Port, HSEN2_Pin},
     {HSEN3_GPIO_Port, HSEN3_Pin},
     {HSEN4_GPIO_Port, HSEN4_Pin},
+    {USER_R_GPIO_Port, USER_R_Pin},
+    {USER_G_GPIO_Port, USER_G_Pin},
+    {USER_B_GPIO_Port, USER_B_Pin},
 };
 /* USER CODE END PV */
 
@@ -64,7 +70,7 @@ static void MX_ADC1_Init(void);
 static void MX_ADC2_Init(void);
 static void MX_FDCAN1_Init(void);
 static void MX_I2C3_Init(void);
-static void MX_I2C4_Init(void);
+static void MX_I2C4_SMBUS_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -113,10 +119,14 @@ int main(void)
   MX_ADC2_Init();
   MX_FDCAN1_Init();
   MX_I2C3_Init();
-  MX_I2C4_Init();
+  MX_I2C4_SMBUS_Init();
   /* USER CODE BEGIN 2 */
-
+    pdm_init();
   /* USER CODE END 2 */
+
+  MX_ThreadX_Init();
+
+  /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -148,7 +158,13 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV1;
+  RCC_OscInitStruct.PLL.PLLN = 8;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
+  RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -158,12 +174,12 @@ void SystemClock_Config(void)
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
     Error_Handler();
   }
@@ -315,17 +331,17 @@ static void MX_FDCAN1_Init(void)
   hfdcan1.Init.ClockDivider = FDCAN_CLOCK_DIV1;
   hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;
   hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;
-  hfdcan1.Init.AutoRetransmission = DISABLE;
-  hfdcan1.Init.TransmitPause = DISABLE;
+  hfdcan1.Init.AutoRetransmission = ENABLE;
+  hfdcan1.Init.TransmitPause = ENABLE;
   hfdcan1.Init.ProtocolException = DISABLE;
-  hfdcan1.Init.NominalPrescaler = 16;
+  hfdcan1.Init.NominalPrescaler = 32;
   hfdcan1.Init.NominalSyncJumpWidth = 1;
-  hfdcan1.Init.NominalTimeSeg1 = 1;
-  hfdcan1.Init.NominalTimeSeg2 = 1;
-  hfdcan1.Init.DataPrescaler = 1;
+  hfdcan1.Init.NominalTimeSeg1 = 13;
+  hfdcan1.Init.NominalTimeSeg2 = 2;
+  hfdcan1.Init.DataPrescaler = 32;
   hfdcan1.Init.DataSyncJumpWidth = 1;
-  hfdcan1.Init.DataTimeSeg1 = 1;
-  hfdcan1.Init.DataTimeSeg2 = 1;
+  hfdcan1.Init.DataTimeSeg1 = 13;
+  hfdcan1.Init.DataTimeSeg2 = 2;
   hfdcan1.Init.StdFiltersNbr = 0;
   hfdcan1.Init.ExtFiltersNbr = 0;
   hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
@@ -355,7 +371,7 @@ static void MX_I2C3_Init(void)
 
   /* USER CODE END I2C3_Init 1 */
   hi2c3.Instance = I2C3;
-  hi2c3.Init.Timing = 0x00503D58;
+  hi2c3.Init.Timing = 0x10B17DB5;
   hi2c3.Init.OwnAddress1 = 0;
   hi2c3.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c3.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -392,7 +408,7 @@ static void MX_I2C3_Init(void)
   * @param None
   * @retval None
   */
-static void MX_I2C4_Init(void)
+static void MX_I2C4_SMBUS_Init(void)
 {
 
   /* USER CODE BEGIN I2C4_Init 0 */
@@ -402,34 +418,25 @@ static void MX_I2C4_Init(void)
   /* USER CODE BEGIN I2C4_Init 1 */
 
   /* USER CODE END I2C4_Init 1 */
-  hi2c4.Instance = I2C4;
-  hi2c4.Init.Timing = 0x00503D58;
-  hi2c4.Init.OwnAddress1 = 0;
-  hi2c4.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  hi2c4.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  hi2c4.Init.OwnAddress2 = 0;
-  hi2c4.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
-  hi2c4.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c4.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&hi2c4) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure Analogue filter
-  */
-  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c4, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure Digital filter
-  */
-  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c4, 0) != HAL_OK)
+  hsmbus4.Instance = I2C4;
+  hsmbus4.Init.Timing = 0x10B17DB5;
+  hsmbus4.Init.AnalogFilter = SMBUS_ANALOGFILTER_ENABLE;
+  hsmbus4.Init.OwnAddress1 = 2;
+  hsmbus4.Init.AddressingMode = SMBUS_ADDRESSINGMODE_7BIT;
+  hsmbus4.Init.DualAddressMode = SMBUS_DUALADDRESS_DISABLE;
+  hsmbus4.Init.OwnAddress2 = 0;
+  hsmbus4.Init.OwnAddress2Masks = SMBUS_OA2_NOMASK;
+  hsmbus4.Init.GeneralCallMode = SMBUS_GENERALCALL_DISABLE;
+  hsmbus4.Init.NoStretchMode = SMBUS_NOSTRETCH_DISABLE;
+  hsmbus4.Init.PacketErrorCheckMode = SMBUS_PEC_DISABLE;
+  hsmbus4.Init.PeripheralMode = SMBUS_PERIPHERAL_MODE_SMBUS_SLAVE;
+  hsmbus4.Init.SMBusTimeout = 0x0000830D;
+  if (HAL_SMBUS_Init(&hsmbus4) != HAL_OK)
   {
     Error_Handler();
   }
   /* USER CODE BEGIN I2C4_Init 2 */
+
 
   /* USER CODE END I2C4_Init 2 */
 
@@ -462,7 +469,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, HSDIAG3_Pin|HSDIAG4_Pin|HSEN4_Pin|I_AUX2_Pin
-                          |I_AUX1_Pin|I_AUX2B15_Pin, GPIO_PIN_RESET);
+                          |I_AUX1_Pin|THERM_EN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : USER_R_Pin USER_G_Pin USER_B_Pin HSEN3_Pin */
   GPIO_InitStruct.Pin = USER_R_Pin|USER_G_Pin|USER_B_Pin|HSEN3_Pin;
@@ -481,9 +488,9 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : HSDIAG3_Pin HSDIAG4_Pin HSEN4_Pin I_AUX2_Pin
-                           I_AUX1_Pin I_AUX2B15_Pin */
+                           I_AUX1_Pin THERM_EN_Pin */
   GPIO_InitStruct.Pin = HSDIAG3_Pin|HSDIAG4_Pin|HSEN4_Pin|I_AUX2_Pin
-                          |I_AUX1_Pin|I_AUX2B15_Pin;
+                          |I_AUX1_Pin|THERM_EN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -511,6 +518,28 @@ static void MX_GPIO_Init(void)
 /* USER CODE END 4 */
 
 /**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM7 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM7)
+  {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
+
+/**
   * @brief  This function is executed in case of error occurrence.
   * @retval None
   */
@@ -521,6 +550,11 @@ void Error_Handler(void)
   __disable_irq();
   while (1)
   {
+      HAL_GPIO_TogglePin(USER_R_GPIO_Port, USER_R_Pin);
+      HAL_GPIO_TogglePin(USER_G_GPIO_Port, USER_G_Pin);
+      HAL_GPIO_TogglePin(USER_B_GPIO_Port, USER_B_Pin);
+        //TODO: print error.
+      HAL_Delay(1000);
   }
   /* USER CODE END Error_Handler_Debug */
 }
@@ -536,7 +570,7 @@ void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+    printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
