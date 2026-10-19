@@ -67,12 +67,14 @@ VOID pdm_smbus_queue_thread_entry(ULONG thread_input) {
                     break;
                 default:
                     // Log any unimplemented
+                {
                     can_frame_t smbus_response = {{0}, 8, 0x044};
                     smbus_response.data[0] = smbus_cmd -> controller_addr;
                     smbus_response.data[1] = smbus_cmd -> command.cmnd_code;
                     smbus_response.data[2] = result;
                     tx_queue_send(&can_tx_queue, &smbus_response, TX_NO_WAIT);
                     break;
+                }
             }
         }
     }
