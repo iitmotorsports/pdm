@@ -81,7 +81,7 @@ void pdm_fans_set_fsc(bool is_fsc, uint8_t controller_addr, uint8_t fan_reg_addr
         elapsed++;
     }
     if (elapsed >= TIMEOUT) {
-        Error_Handler(); //TODO: SMBUS never recieved a respo
+        Error_Handler(); //TODO: SMBUS Timeout
     }
 }
 

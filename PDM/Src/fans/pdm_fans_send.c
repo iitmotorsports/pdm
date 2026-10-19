@@ -11,6 +11,6 @@ VOID pdm_fans_tx_speed_thread_entry(ULONG thread_input) {
     };
     // fan_speeds's size is explicitly 6 so should be okay
     memcpy(fan_speed_frame.data, fan_speeds, sizeof(fan_speeds));
-    tx_queue_send(&can_tx_queue, &fan_speed_frame, TX_NO_WAIT); // FIXME: Don't know what return type is but need to handle it
+    tx_queue_send(&can_tx_queue, &fan_speed_frame, TX_NO_WAIT);
     tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND);
 }
