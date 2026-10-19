@@ -12,6 +12,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: carlosperate/arm-none-eabi-gcc-action@v1
+        with:
+          release: '15.3.Rel1'
       - run: arm-none-eabi-gcc --version
       - name: Generate compile_commands
         run: cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON --preset Debug
