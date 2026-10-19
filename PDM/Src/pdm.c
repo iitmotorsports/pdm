@@ -75,20 +75,18 @@ UINT pdm_threads_create(TX_BYTE_POOL *byte_pool) {
         return TX_THREAD_ERROR;
     }
 
-    status = tx_thread_create(
-        &pdm_can_tx_thread, "pdm_can_tx",
-        pdm_can_tx_thread_entry, 0, pdm_can_tx_stack,
-        PDM_CAN_TX_STACK_SIZE, PDM_CAN_TX_PRIORITY,
-        PDM_CAN_TX_PRIORITY, 1, TX_AUTO_START);
+    status = tx_thread_create(&pdm_can_tx_thread, "pdm_can_tx",
+                              pdm_can_tx_thread_entry, 0, pdm_can_tx_stack,
+                              PDM_CAN_TX_STACK_SIZE, PDM_CAN_TX_PRIORITY,
+                              PDM_CAN_TX_PRIORITY, 1, TX_AUTO_START);
     if (status != TX_SUCCESS) {
         return TX_THREAD_ERROR;
     }
 
     status = tx_thread_create(
-        &pdm_smbus_queue_thread, "pdm_smbus",
-        pdm_smbus_queue_thread_entry, 0, pdm_smbus_queue_stack,
-        PDM_SMBUS_QUEUE_STACK_SIZE, PDM_SMBUS_QUEUE_PRIORITY,
-        PDM_SMBUS_QUEUE_PRIORITY, 1, TX_AUTO_START);
+        &pdm_smbus_queue_thread, "pdm_smbus", pdm_smbus_queue_thread_entry, 0,
+        pdm_smbus_queue_stack, PDM_SMBUS_QUEUE_STACK_SIZE,
+        PDM_SMBUS_QUEUE_PRIORITY, PDM_SMBUS_QUEUE_PRIORITY, 1, TX_AUTO_START);
     if (status != TX_SUCCESS) {
         return TX_THREAD_ERROR;
     }
