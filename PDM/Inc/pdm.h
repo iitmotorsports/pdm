@@ -4,16 +4,15 @@
 
 #ifndef PDM_PDM_H
 #define PDM_PDM_H
-#include "main.h"
-#include "tx_api.h"
 #include "can/pdm_can.h"
 #include "can/pdm_can_heartbeat.h"
 #include "fans/pdm_fans_smbus_queue.h"
 #include "main.h"
 #include "pdm_status_led.h"
+#include "tx_api.h"
 
 typedef struct {
-     uint16_t STACK_SIZE;
+    uint16_t STACK_SIZE;
     const int PRIORITY;
     TX_THREAD thread;
     void *stack;

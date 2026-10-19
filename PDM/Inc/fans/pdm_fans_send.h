@@ -1,9 +1,9 @@
 
 #ifndef PDM_PDM_FANS_SEND_H
 #define PDM_PDM_FANS_SEND_H
+#include "can/pdm_can.h"
 #include "tx_api.h"
 #include <stdint.h>
-#include "can/pdm_can.h"
 
 extern uint8_t fan_speeds[6];
 
