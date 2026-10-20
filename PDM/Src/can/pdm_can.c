@@ -1,5 +1,6 @@
 #include "can/pdm_can.h"
 
+
 #define SMBUS_QUEUE_DEPTH 12
 #define SMBUS_QUEUE_OBJ_SIZE (sizeof(can_frame_t) / sizeof(ULONG))
 
@@ -59,7 +60,11 @@ void pdm_can_tx(const uint8_t tx_data[], uint8_t tx_data_len, uint16_t tx_id) {
 
 void pdm_can_rx(uint8_t rx_data[], uint8_t rx_data_len, uint16_t rx_id) {
     switch (rx_id) {
-    // I imagine some sort of handler based on rx_id
+    // Handler based on rx_id
+    case 0x102:
+        for (uint8_t i = 0; i < rx_data_len; i++) {
+            pdm_fans_write_speed(rx_data[i], i+1);
+        }
     default:
         // TODO: This works for debugging but obviously don't want to just send
         // back unrecognized CAN msgs

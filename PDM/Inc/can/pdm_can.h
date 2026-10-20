@@ -4,6 +4,7 @@
 #include "main.h"
 #include "tx_api.h"
 #include <string.h>
+#include "fans/pdm_fans.h"
 
 extern FDCAN_HandleTypeDef hfdcan1;
 
