@@ -20,6 +20,8 @@
                         ninja
                         can-utils
                         savvycan
+                        clang
+                        clang-tools
                     ];
                 };
             };
