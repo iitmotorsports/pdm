@@ -4,22 +4,10 @@
 #define SMBUS_QUEUE_OBJ_SIZE (sizeof(can_frame_t) / sizeof(ULONG))
 
 const GPIO_Pin_t k_hsd_pins[4] = {
-   {
-       HSEN1_GPIO_Port,
-       HSEN1_Pin
-   },
-{
-    HSEN2_GPIO_Port,
-    HSEN2_Pin
-},
-{
-    HSEN3_GPIO_Port,
-    HSEN3_Pin
-},
-{
-    HSEN4_GPIO_Port,
-    HSEN4_Pin
-},
+    {` HSEN1_GPIO_Port, HSEN1_Pin},
+    {HSEN2_GPIO_Port, HSEN2_Pin},
+    {HSEN3_GPIO_Port, HSEN3_Pin},
+    {HSEN4_GPIO_Port, HSEN4_Pin},
 };
 
 TX_QUEUE can_tx_queue;
@@ -87,8 +75,11 @@ void pdm_can_rx(uint8_t rx_data[], uint8_t rx_data_len, uint16_t rx_id) {
         }
     case 0x103: // HSD_RECEIVE
         for (uint8_t i = 0; i < rx_data_len; i++) {
-            if ((rx_data[i] & 0x2U) == 1) { // Check 2nd bit. 1 -> acknowledge | 0 -> ignore
-               HAL_GPIO_WritePin(k_hsd_pins[i].port, k_hsd_pins[i].pin, rx_data[i] & 0x1F ? GPIO_PIN_SET : GPIO_PIN_RESET);
+            if ((rx_data[i] & 0x2U) ==
+                1) { // Check 2nd bit. 1 -> acknowledge | 0 -> ignore
+                HAL_GPIO_WritePin(k_hsd_pins[i].port, k_hsd_pins[i].pin,
+                                  rx_data[i] & 0x1F ? GPIO_PIN_SET
+                                                    : GPIO_PIN_RESET);
             }
         }
     default:
