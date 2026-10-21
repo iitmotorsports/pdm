@@ -4,7 +4,7 @@
 #define SMBUS_QUEUE_OBJ_SIZE (sizeof(can_frame_t) / sizeof(ULONG))
 
 const GPIO_Pin_t k_hsd_pins[4] = {
-    {` HSEN1_GPIO_Port, HSEN1_Pin},
+    {HSEN1_GPIO_Port, HSEN1_Pin},
     {HSEN2_GPIO_Port, HSEN2_Pin},
     {HSEN3_GPIO_Port, HSEN3_Pin},
     {HSEN4_GPIO_Port, HSEN4_Pin},
