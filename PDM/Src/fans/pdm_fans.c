@@ -17,7 +17,7 @@ SMBUS_StackHandleTypeDef context1;
 // maintain parity with EMC2303 docs
 void pdm_fans_write_speed(uint8_t tach, uint8_t fan_num) {
     uint8_t fan_ctrler_num = (fan_num - 1) % 3;
-    uint8_t ctrler_num = fan_num / 3;
+    uint8_t ctrler_num = (fan_num - 1) / 3;
     uint8_t fan_ctrler_addrs = k_controller_addrs[ctrler_num];
     uint8_t fan_address = k_fan_target_lb_regs[fan_ctrler_num];
     smbus_cmd_t cmd_lb = {
