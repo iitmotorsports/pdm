@@ -102,7 +102,7 @@ void Error_Handler(void);
 typedef struct {
     GPIO_TypeDef *port;
     uint16_t pin;
-} HSEN_Pin_t;
+} GPIO_Pin_t;
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
