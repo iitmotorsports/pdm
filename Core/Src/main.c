@@ -51,7 +51,7 @@ SMBUS_HandleTypeDef hsmbus4;
 
 /* USER CODE BEGIN PV */
 // Need to add each pin as they're created won't update automatically
-HSEN_Pin_t hsen_pins[7] = {
+GPIO_Pin_t hsen_pins[7] = {
     {HSEN1_GPIO_Port, HSEN1_Pin},
     {HSEN2_GPIO_Port, HSEN2_Pin},
     {HSEN3_GPIO_Port, HSEN3_Pin},
