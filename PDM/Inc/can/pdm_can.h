@@ -14,6 +14,14 @@ typedef struct {
     uint16_t id;
 } __attribute__((aligned(4))) can_frame_t;
 
+enum canbus_ids {
+    PDM_HEARTBEAT = 0x001,
+    FAN_SEND = 0x02,
+    FAN_RECEIVE = 0x102,
+    HSD_RECEIVE = 0x103,
+    SMBUS_MISC = 0x44,
+};
+
 void pdm_can_init();
 UINT pdm_can_tx_tx_create(TX_BYTE_POOL *byte_pool);
 VOID pdm_can_tx_thread_entry();

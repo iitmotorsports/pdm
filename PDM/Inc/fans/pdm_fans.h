@@ -19,8 +19,8 @@ extern const uint8_t k_controller_addrs[2];
 extern const uint8_t k_fan_settings_regs[3];
 
 void pdm_fans_init();
-void pdm_fans_write_speed(uint8_t tach, uint8_t fan_num);
-void pdm_fans_read_speed(uint8_t fan_num);
+void pdm_fan_can_callback_recv(uint8_t rx_data[], uint8_t rx_data_len);
+void pdm_fan_can_callback_send();
 void pdm_fans_set_push_pull(bool is_push_pull, uint8_t controller_addr);
 void pdm_fans_set_fsc(bool is_fsc, uint8_t controller_addr,
                       uint8_t fan_reg_addr);

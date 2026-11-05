@@ -59,12 +59,8 @@ void pdm_can_tx(const uint8_t tx_data[], uint8_t tx_data_len, uint16_t tx_id) {
 void pdm_can_rx(uint8_t rx_data[], uint8_t rx_data_len, uint16_t rx_id) {
     switch (rx_id) {
     // Handler based on rx_id
-    case 0x102: // FAN_RECEIVE
-        for (uint8_t i = 0; i < rx_data_len; i++) {
-            if (rx_data[0] != 0) {
-                pdm_fans_write_speed(rx_data[i], i + 1);
-            }
-        }
+    case FAN_RECEIVE: // ENUM Declared in pdm_can.h
+        pdm_fan_can_callback_recv(rx_data, rx_data_len);
     default:
         // TODO: This works for debugging but obviously don't want to just send
         // back unrecognized CAN msgs

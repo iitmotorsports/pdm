@@ -1,5 +1,7 @@
 #include "fans/pdm_fans.h"
 
+#include "fans/pdm_fans_send.h"
+
 const uint8_t k_controller_addrs[] = {0x5C, 0x5E};
 const uint8_t k_fan_settings_regs[] = {0x32U, 0x42U, 0x52U};
 const uint8_t k_fan_target_lb_regs[] = {0x3CU, 0x4CU, 0x5CU};
@@ -45,6 +47,19 @@ void pdm_fans_read_speed(uint8_t fan_num) {
     tx_queue_send(&smbus_queue, &cmd_hb, TX_NO_WAIT);
     tx_queue_send(&smbus_queue, &cmd_lb, TX_NO_WAIT);
 }
+
+void pdm_fan_can_callback_recv(uint8_t rx_data[], uint8_t rx_data_len) {
+    for (uint8_t i = 0; i < rx_data_len; i++) {
+        if (rx_data[0] != 0) {
+            pdm_fans_write_speed(rx_data[i], i + 1);
+        }
+    }
+}
+
+void pdm_fan_can_callback_send() {
+    for (uint8_t i = 0; i < (uint8_t)(sizeof(fan_speeds)/sizeof(fan_speeds[0])); i++) {
+            pdm_fans_read_speed(i + 1);
+    }
 
 // ONLY CALL IN A THREAD
 void pdm_fans_set_push_pull(bool is_push_pull, uint8_t controller_addr) {
