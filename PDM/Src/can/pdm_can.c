@@ -13,13 +13,6 @@ TX_QUEUE can_tx_queue;
 static ULONG can_tx_queue_storage[SMBUS_QUEUE_DEPTH * SMBUS_QUEUE_OBJ_SIZE];
 
 void pdm_can_init() {
-    UINT status =
-        tx_queue_create(&can_tx_queue, "can_tx_queue", SMBUS_QUEUE_OBJ_SIZE,
-                        can_tx_queue_storage, sizeof(can_tx_queue_storage));
-    if (status != TX_SUCCESS) {
-        Error_Handler();
-    }
-
     HAL_GPIO_WritePin(TERM_EN_GPIO_Port, TERM_EN_Pin, GPIO_PIN_SET);
 
     FDCAN_FilterTypeDef sFilterConfig;
@@ -81,7 +74,13 @@ void pdm_can_rx(uint8_t rx_data[], uint8_t rx_data_len, uint16_t rx_id) {
 }
 
 UINT pdm_can_tx_tx_create(TX_BYTE_POOL *byte_pool) {
-    UINT status = tx_thread_create(&pdm_can_tx_thread, "pdm_can_tx",
+    UINT status =
+        tx_queue_create(&can_tx_queue, "can_tx_queue", SMBUS_QUEUE_OBJ_SIZE,
+                        can_tx_queue_storage, sizeof(can_tx_queue_storage));
+    if (status != TX_SUCCESS) {
+        return status;
+    }
+    status = tx_thread_create(&pdm_can_tx_thread, "pdm_can_tx",
                               pdm_can_tx_thread_entry, 0, pdm_can_tx_stack,
                               PDM_CAN_TX_STACK_SIZE, PDM_CAN_TX_PRIORITY,
                               PDM_CAN_TX_PRIORITY, 1, TX_AUTO_START);
