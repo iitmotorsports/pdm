@@ -1,6 +1,5 @@
 #include "pdm.h"
 
-#include "fans/pdm_fans_send.h"
 
 
 void pdm_init() {
