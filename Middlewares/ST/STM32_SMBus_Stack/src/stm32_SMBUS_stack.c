@@ -1618,8 +1618,7 @@ uint8_t *STACK_SMBUS_GetBuffer( SMBUS_StackHandleTypeDef *pStackContext )
   *                     Leave zero for process call.
   * @retval SMBus stack return code
   */
-HAL_StatusTypeDef STACK_SMBUS_HostCommand(SMBUS_StackHandleTypeDef *pStackContext, st_command_t *pCommand,
-    uint16_t address, uint32_t direction)
+HAL_StatusTypeDef STACK_SMBUS_HostCommand(SMBUS_StackHandleTypeDef *pStackContext, st_command_t *pCommand, uint16_t address, uint32_t direction)
 {
   HAL_StatusTypeDef     result = STACK_BUSY;
   uint32_t              xFerOptions = SMBUS_FIRST_FRAME;

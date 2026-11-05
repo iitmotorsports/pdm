@@ -5,6 +5,9 @@
 #include "can/pdm_can.h"
 #include "main.h"
 #include "tx_api.h"
+
+extern TX_QUEUE can_tx_queue;
+UINT pdm_can_heartbeat_tx_create(TX_BYTE_POOL *byte_pool);
 VOID pdm_can_heartbeat_thread_entry(ULONG thread_input);
 
 #endif // PDM_PDM_CAN_HEARTBEAT_H
