@@ -1,6 +1,11 @@
 #include "fans/pdm_fans_smbus_queue.h"
-
 #include "can/pdm_can_heartbeat.h"
+
+#define PDM_SMBUS_QUEUE_STACK_SIZE 512
+#define PDM_SMBUS_QUEUE_PRIORITY 20
+
+static TX_THREAD pdm_smbus_queue_thread;
+static uint8_t pdm_smbus_queue_stack[PDM_SMBUS_QUEUE_STACK_SIZE];
 
 #define SMBUS_QUEUE_DEPTH 12
 #define SMBUS_QUEUE_OBJ_SIZE (sizeof(smbus_cmd_t) / sizeof(ULONG))
@@ -15,13 +20,18 @@ static ULONG smbus_queue_storage[SMBUS_QUEUE_DEPTH * SMBUS_QUEUE_OBJ_SIZE];
 
 uint8_t fan_speeds[6];
 
-void pdm_smbus_queue_init() {
-    UINT status =
-        tx_queue_create(&smbus_queue, "smbus_queue", SMBUS_QUEUE_OBJ_SIZE,
-                        smbus_queue_storage, sizeof(smbus_queue_storage));
+UINT pdm_smbus_queue_tx_create(TX_BYTE_POOL *byte_pool) {
+    UINT status = tx_thread_create(
+        &pdm_smbus_queue_thread, "pdm_smbus", pdm_smbus_queue_thread_entry, 0,
+        pdm_smbus_queue_stack, PDM_SMBUS_QUEUE_STACK_SIZE,
+        PDM_SMBUS_QUEUE_PRIORITY, PDM_SMBUS_QUEUE_PRIORITY, 1, TX_AUTO_START);
     if (status != TX_SUCCESS) {
-        Error_Handler();
+        return status;
     }
+
+    status = tx_queue_create(&smbus_queue, "smbus_queue", SMBUS_QUEUE_OBJ_SIZE,
+                        smbus_queue_storage, sizeof(smbus_queue_storage));
+    return status;
 }
 
 VOID pdm_smbus_queue_thread_entry(ULONG thread_input) {

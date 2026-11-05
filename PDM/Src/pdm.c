@@ -2,35 +2,6 @@
 
 #include "fans/pdm_fans_send.h"
 
-#define PDM_STATUS_LED_STACK_SIZE 512
-#define PDM_STATUS_LED_PRIORITY 20
-
-static TX_THREAD pdm_status_led_thread;
-static uint8_t pdm_status_led_stack[PDM_STATUS_LED_STACK_SIZE];
-
-#define PDM_CAN_HEARTBEAT_STACK_SIZE 512
-#define PDM_CAN_HEARTBEAT_PRIORITY 20
-
-static TX_THREAD pdm_can_heartbeat_thread;
-static uint8_t pdm_can_heartbeat_stack[PDM_CAN_HEARTBEAT_STACK_SIZE];
-
-#define PDM_CAN_TX_STACK_SIZE 512
-#define PDM_CAN_TX_PRIORITY 20
-
-static TX_THREAD pdm_can_tx_thread;
-static uint8_t pdm_can_tx_stack[PDM_CAN_TX_STACK_SIZE];
-
-#define PDM_SMBUS_QUEUE_STACK_SIZE 512
-#define PDM_SMBUS_QUEUE_PRIORITY 20
-
-static TX_THREAD pdm_smbus_queue_thread;
-static uint8_t pdm_smbus_queue_stack[PDM_SMBUS_QUEUE_STACK_SIZE];
-
-#define PDM_FANS_TX_SPEED_STACK_SIZE 512
-#define PDM_FANS_TX_SPEED_PRIORITY 20
-
-static TX_THREAD pdm_fans_tx_speed_thread;
-static uint8_t pdm_fans_tx_speed_stack[PDM_FANS_TX_SPEED_STACK_SIZE];
 
 void pdm_init() {
     // Show PDM is working before entering threads
@@ -43,8 +14,7 @@ void pdm_init() {
         i += 50;
     }
     pdm_can_init();
-    pdm_smbus_queue_init();
-    // pdm_fans_init();
+    pdm_fans_init();
 }
 
 void pdm_main_loop() {
@@ -58,47 +28,27 @@ void pdm_main_loop() {
 }
 
 UINT pdm_threads_create(TX_BYTE_POOL *byte_pool) {
-    UINT status = tx_thread_create(
-        &pdm_status_led_thread, "pdm_status_led", pdm_status_led_thread_entry,
-        0, pdm_status_led_stack, PDM_STATUS_LED_STACK_SIZE,
-        PDM_STATUS_LED_PRIORITY, PDM_STATUS_LED_PRIORITY, 1, TX_AUTO_START);
+    UINT status = pdm_status_led_tx_create(byte_pool);
     if (status != TX_SUCCESS) {
-        return TX_THREAD_ERROR;
+        return status;
     }
 
-    status = tx_thread_create(
-        &pdm_can_heartbeat_thread, "pdm_can_heartbeat",
-        pdm_can_heartbeat_thread_entry, 0, pdm_can_heartbeat_stack,
-        PDM_CAN_HEARTBEAT_STACK_SIZE, PDM_CAN_HEARTBEAT_PRIORITY,
-        PDM_CAN_HEARTBEAT_PRIORITY, 1, TX_AUTO_START);
+    status = pdm_can_tx_tx_create(byte_pool);
     if (status != TX_SUCCESS) {
-        return TX_THREAD_ERROR;
+        return status;
     }
 
-    status = tx_thread_create(&pdm_can_tx_thread, "pdm_can_tx",
-                              pdm_can_tx_thread_entry, 0, pdm_can_tx_stack,
-                              PDM_CAN_TX_STACK_SIZE, PDM_CAN_TX_PRIORITY,
-                              PDM_CAN_TX_PRIORITY, 1, TX_AUTO_START);
+    status = pdm_can_heartbeat_tx_create(byte_pool);
     if (status != TX_SUCCESS) {
-        return TX_THREAD_ERROR;
+        return status;
     }
 
-    status = tx_thread_create(
-        &pdm_smbus_queue_thread, "pdm_smbus", pdm_smbus_queue_thread_entry, 0,
-        pdm_smbus_queue_stack, PDM_SMBUS_QUEUE_STACK_SIZE,
-        PDM_SMBUS_QUEUE_PRIORITY, PDM_SMBUS_QUEUE_PRIORITY, 1, TX_AUTO_START);
+    status = pdm_smbus_queue_tx_create(byte_pool);
     if (status != TX_SUCCESS) {
-        return TX_THREAD_ERROR;
+        return status;
     }
 
-    status = tx_thread_create(
-        &pdm_fans_tx_speed_thread, "pdm_can_tx_fan_speed",
-        pdm_fans_tx_speed_thread_entry, 0, pdm_fans_tx_speed_stack,
-        PDM_FANS_TX_SPEED_STACK_SIZE, PDM_FANS_TX_SPEED_PRIORITY,
-        PDM_FANS_TX_SPEED_PRIORITY, 1, TX_AUTO_START);
-    if (status != TX_SUCCESS) {
-        return TX_THREAD_ERROR;
-    }
+    status = pdm_fans_tx_speed_tx_create(byte_pool);
 
     return status;
 };

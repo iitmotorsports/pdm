@@ -2,6 +2,21 @@
 
 #include "can/pdm_can_heartbeat.h"
 
+#define PDM_FANS_TX_SPEED_STACK_SIZE 512
+#define PDM_FANS_TX_SPEED_PRIORITY 20
+
+static TX_THREAD pdm_fans_tx_speed_thread;
+static uint8_t pdm_fans_tx_speed_stack[PDM_FANS_TX_SPEED_STACK_SIZE];
+
+UINT pdm_fans_tx_speed_tx_create(TX_BYTE_POOL *byte_pool) {
+    UINT status = tx_thread_create(
+        &pdm_fans_tx_speed_thread, "pdm_can_tx_fan_speed",
+        pdm_fans_tx_speed_thread_entry, 0, pdm_fans_tx_speed_stack,
+        PDM_FANS_TX_SPEED_STACK_SIZE, PDM_FANS_TX_SPEED_PRIORITY,
+        PDM_FANS_TX_SPEED_PRIORITY, 1, TX_AUTO_START);
+    return status;
+}
+
 VOID pdm_fans_tx_speed_thread_entry(ULONG thread_input) {
     can_frame_t fan_speed_frame = {{0}, 8, 0x01};
     // fan_speeds's size is explicitly 6 so should be okay

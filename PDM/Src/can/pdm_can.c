@@ -3,6 +3,12 @@
 #define SMBUS_QUEUE_DEPTH 12
 #define SMBUS_QUEUE_OBJ_SIZE (sizeof(can_frame_t) / sizeof(ULONG))
 
+#define PDM_CAN_TX_STACK_SIZE 512
+#define PDM_CAN_TX_PRIORITY 20
+
+static TX_THREAD pdm_can_tx_thread;
+static uint8_t pdm_can_tx_stack[PDM_CAN_TX_STACK_SIZE];
+
 TX_QUEUE can_tx_queue;
 static ULONG can_tx_queue_storage[SMBUS_QUEUE_DEPTH * SMBUS_QUEUE_OBJ_SIZE];
 
@@ -72,6 +78,14 @@ void pdm_can_rx(uint8_t rx_data[], uint8_t rx_data_len, uint16_t rx_id) {
         pdm_can_tx(rx_data, rx_data_len, rx_id);
         break;
     }
+}
+
+UINT pdm_can_tx_tx_create(TX_BYTE_POOL *byte_pool) {
+    UINT status = tx_thread_create(&pdm_can_tx_thread, "pdm_can_tx",
+                              pdm_can_tx_thread_entry, 0, pdm_can_tx_stack,
+                              PDM_CAN_TX_STACK_SIZE, PDM_CAN_TX_PRIORITY,
+                              PDM_CAN_TX_PRIORITY, 1, TX_AUTO_START);
+    return status;
 }
 
 VOID pdm_can_tx_thread_entry() {
