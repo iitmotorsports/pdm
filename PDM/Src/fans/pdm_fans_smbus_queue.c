@@ -37,13 +37,17 @@ UINT pdm_smbus_queue_tx_create(TX_BYTE_POOL *byte_pool) {
 VOID pdm_smbus_queue_thread_entry(ULONG thread_input) {
     smbus_cmd_t *smbus_cmd = NULL;
     uint8_t *piobuf = NULL;
+    // On each controller
     for (uint8_t i = 0; i < (uint8_t)(sizeof(k_controller_addrs) /
                                       sizeof(k_controller_addrs[0]));
          i++) {
+        // Enable push_pull to match how our fan controllers are configured
         pdm_fans_set_push_pull(true, k_controller_addrs[i]);
+        // On each fan
         for (uint8_t j = 0; j < (uint8_t)(sizeof(k_fan_settings_regs) /
                                           sizeof(k_fan_settings_regs[0]));
              j++) {
+            // Enable FSC mode to control the fan through RPM
             pdm_fans_set_fsc(true, k_controller_addrs[i],
                              k_fan_settings_regs[j]);
         }

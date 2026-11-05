@@ -75,16 +75,8 @@ void pdm_fans_set_push_pull(bool is_push_pull, uint8_t controller_addr) {
     if (is_push_pull) {
         piobuf[0] = 0x7U; // Data that you're writing Table 5.5
     }
-    STACK_SMBUS_HostCommand(&context1, &WRITE_PUSH_PULL, controller_addr,
-                            WRITE);
-    uint8_t elapsed = 0;
-    while (STACK_SMBUS_IsBusy(&context1) && elapsed < TIMEOUT) {
-        tx_thread_sleep(1);
-        elapsed++;
-    }
-    if (elapsed >= TIMEOUT) {
-        Error_Handler(); // TODO: SMBUS timeout
-    }
+    smbus_cmd_t cmd = {piobuf[0], controller_addr, WRITE_PUSH_PULL, true};
+    tx_queue_send(&smbus_queue, &cmd, TX_NO_WAIT);
 }
 
 // ONLY CALL IN A THREAD
@@ -100,16 +92,8 @@ void pdm_fans_set_fsc(bool is_fsc, uint8_t controller_addr,
         // FSC is the closed loop mode
         piobuf[0] = 0xBBU; // Table 5.10
     }
-    STACK_SMBUS_HostCommand(&context1, &WRITE_FSC_SETTINGS, controller_addr,
-                            WRITE);
-    uint8_t elapsed = 0;
-    while (STACK_SMBUS_IsBusy(&context1) && elapsed < TIMEOUT) {
-        tx_thread_sleep(1);
-        elapsed++;
-    }
-    if (elapsed >= TIMEOUT) {
-        Error_Handler(); // TODO: SMBUS Timeout
-    }
+    smbus_cmd_t cmd = {piobuf[0], controller_addr, WRITE_FSC_SETTINGS, true};
+    tx_queue_send(&smbus_queue, &cmd, TX_NO_WAIT);
 }
 
 void pdm_fans_init() {
