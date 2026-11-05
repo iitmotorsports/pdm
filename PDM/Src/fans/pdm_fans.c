@@ -58,8 +58,9 @@ void pdm_fan_can_callback_recv(uint8_t rx_data[], uint8_t rx_data_len) {
 
 void pdm_fan_can_callback_send() {
     for (uint8_t i = 0; i < (uint8_t)(sizeof(fan_speeds)/sizeof(fan_speeds[0])); i++) {
-            pdm_fans_read_speed(i + 1);
+        pdm_fans_read_speed(i + 1);
     }
+}
 
 // ONLY CALL IN A THREAD
 void pdm_fans_set_push_pull(bool is_push_pull, uint8_t controller_addr) {
