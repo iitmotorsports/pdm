@@ -79,10 +79,17 @@ VOID pdm_smbus_queue_thread_entry(ULONG thread_input) {
             case READ_HB: {
                 uint8_t fan_offset =
                     smbus_cmd->controller_addr == k_controller_addrs[0] ? 0 : 2;
-                uint8_t fan_num =
-                    ((smbus_cmd->command.cmnd_code & 0xF0) >> 4) - 0x3U;
+                uint8_t nibble = ((smbus_cmd->command.cmnd_code & 0xF0) >> 4);
+                if (nibble < 0x3U) {
+                    ErrorHandler();
+                }
+                uint8_t fan_num = nibble - 0x3U;
                 uint8_t fan_index = fan_offset + fan_num;
-                fan_speeds[fan_index] = result;
+                if (fan_index < (sizeof(fan_speeds) / sizeof(fan_speeds[0]))) {
+                    fan_speeds[fan_index] = result;
+                } else {
+                    ErrorHandler();
+                }
                 break;
             }
             case READ_LB:
