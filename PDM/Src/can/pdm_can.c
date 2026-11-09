@@ -62,9 +62,7 @@ void pdm_can_rx(uint8_t rx_data[], uint8_t rx_data_len, uint16_t rx_id) {
     case FAN_RECEIVE: // ENUM Declared in pdm_can.h
         pdm_fan_can_callback_recv(rx_data, rx_data_len);
     default:
-        // TODO: This works for debugging but obviously don't want to just send
-        // back unrecognized CAN msgs
-        pdm_can_tx(rx_data, rx_data_len, rx_id);
+        // Do nothing for unrecognized CAN messages
         break;
     }
 }

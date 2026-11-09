@@ -15,8 +15,6 @@ static uint8_t pdm_fans_tx_speed_stack[PDM_FANS_TX_SPEED_STACK_SIZE];
 
 SMBUS_StackHandleTypeDef context1;
 
-#define TIMEOUT (TX_TIMER_TICKS_PER_SECOND / 10)
-
 // Assumes conversion from rpm to tach has already happened
 // Assumes 1 byte with lost resolution, therefore only set HB and always set LB
 // to 0 Assumes FSC SHOULD ONLY BE CALLED IN A THREAD Fans are indexed at 1 to

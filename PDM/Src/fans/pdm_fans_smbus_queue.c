@@ -69,7 +69,7 @@ VOID pdm_smbus_queue_thread_entry(ULONG thread_input) {
             tx_thread_sleep(1);
         }
         if (elapsed >= TIMEOUT) {
-            Error_Handler(); // TODO: SMBUS never recieved a respo
+            Error_Handler(); // TODO: SMBUS never recieved a response
         }
         if (!smbus_cmd->write) {
             const uint8_t result = piobuf[0];
