@@ -13,6 +13,7 @@ void pdm_init() {
         i += 50;
     }
     pdm_can_init();
+    pdm_fans_init();
     pdm_fans_smbus_queue_init();
 }
 
