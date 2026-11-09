@@ -3,6 +3,8 @@
 #include "stm32_SMBUS_stack.h"
 #include "tx_api.h"
 #include <stdbool.h>
+#include "can/pdm_can_heartbeat.h"
+#include "fans/pdm_fans_emc2303.h"
 
 UINT pdm_smbus_queue_tx_create(TX_BYTE_POOL *byte_pool);
 void pdm_fans_smbus_queue_init();
