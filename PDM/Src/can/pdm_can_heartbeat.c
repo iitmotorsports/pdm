@@ -6,7 +6,7 @@
 static TX_THREAD pdm_can_heartbeat_thread;
 static uint8_t pdm_can_heartbeat_stack[PDM_CAN_HEARTBEAT_STACK_SIZE];
 
-UINT pdm_can_heartbeat_tx_create(TX_BYTE_POOL *byte_pool) {
+UINT pdm_can_heartbeat_create(TX_BYTE_POOL *byte_pool) {
     UINT status = tx_thread_create(
         &pdm_can_heartbeat_thread, "pdm_can_heartbeat",
         pdm_can_heartbeat_thread_entry, 0, pdm_can_heartbeat_stack,

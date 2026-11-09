@@ -5,7 +5,7 @@
 
 static TX_THREAD pdm_status_led_thread;
 static uint8_t pdm_status_led_stack[PDM_STATUS_LED_STACK_SIZE];
-UINT pdm_status_led_tx_create(TX_BYTE_POOL *byte_pool) {
+UINT pdm_status_led_create(TX_BYTE_POOL *byte_pool) {
     UINT status = tx_thread_create(
         &pdm_status_led_thread, "pdm_status_led", pdm_status_led_thread_entry,
         0, pdm_status_led_stack, PDM_STATUS_LED_STACK_SIZE,

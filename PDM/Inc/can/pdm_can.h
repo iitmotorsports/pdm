@@ -23,7 +23,7 @@ enum canbus_ids {
 };
 
 void pdm_can_init();
-UINT pdm_can_tx_tx_create(TX_BYTE_POOL *byte_pool);
+UINT pdm_can_tx_create(TX_BYTE_POOL *byte_pool);
 VOID pdm_can_tx_thread_entry();
 
 #endif // PDM_PDM_CAN_H

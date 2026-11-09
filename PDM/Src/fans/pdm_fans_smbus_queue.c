@@ -31,7 +31,7 @@ void pdm_fans_smbus_queue_init() {
     STACK_SMBUS_Init(&context1);
 }
 
-UINT pdm_smbus_queue_tx_create(TX_BYTE_POOL *byte_pool) {
+UINT pdm_smbus_queue_create(TX_BYTE_POOL *byte_pool) {
     UINT status = tx_thread_create(
         &pdm_smbus_queue_thread, "pdm_smbus", pdm_smbus_queue_thread_entry, 0,
         pdm_smbus_queue_stack, PDM_SMBUS_QUEUE_STACK_SIZE,

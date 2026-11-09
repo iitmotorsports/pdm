@@ -67,7 +67,7 @@ void pdm_can_rx(uint8_t rx_data[], uint8_t rx_data_len, uint16_t rx_id) {
     }
 }
 
-UINT pdm_can_tx_tx_create(TX_BYTE_POOL *byte_pool) {
+UINT pdm_can_tx_create(TX_BYTE_POOL *byte_pool) {
     UINT status =
         tx_queue_create(&can_tx_queue, "can_tx_queue", SMBUS_QUEUE_OBJ_SIZE,
                         can_tx_queue_storage, sizeof(can_tx_queue_storage));

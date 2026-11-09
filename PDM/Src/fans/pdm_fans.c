@@ -25,7 +25,7 @@ void pdm_fan_can_callback_recv(uint8_t rx_data[], uint8_t rx_data_len) {
     }
 }
 
-void pdm_fan_can_callback_send() {
+void pdm_fan_update() {
     for (uint8_t i = 0;
          i < (uint8_t)(sizeof(fan_speeds) / sizeof(fan_speeds[0])); i++) {
         if (i / 3 < 1) {
@@ -36,7 +36,7 @@ void pdm_fan_can_callback_send() {
     }
 }
 
-UINT pdm_fans_tx_speed_tx_create(TX_BYTE_POOL *byte_pool) {
+UINT pdm_fans_tx_speed_create(TX_BYTE_POOL *byte_pool) {
     UINT status = tx_thread_create(
         &pdm_fans_tx_speed_thread, "pdm_can_tx_fan_speed",
         pdm_fans_tx_speed_thread_entry, 0, pdm_fans_tx_speed_stack,
@@ -57,7 +57,7 @@ VOID pdm_fans_tx_speed_thread_entry(ULONG thread_input) {
         ctrler_2.set_fsc(&ctrler_2, true, i + 1);
     }
     while (1) {
-        pdm_fan_can_callback_send();
+        pdm_fan_update();
         tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND /
                         4); // Sleep to let fan_speeds update
         can_frame_t fan_speed_frame = {{0}, 8, 0x01};

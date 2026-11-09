@@ -26,27 +26,27 @@ void pdm_main_loop() {
 }
 
 UINT pdm_threads_create(TX_BYTE_POOL *byte_pool) {
-    UINT status = pdm_status_led_tx_create(byte_pool);
+    UINT status = pdm_status_led_create(byte_pool);
     if (status != TX_SUCCESS) {
         return status;
     }
 
-    status = pdm_can_tx_tx_create(byte_pool);
+    status = pdm_can_tx_create(byte_pool);
     if (status != TX_SUCCESS) {
         return status;
     }
 
-    status = pdm_can_heartbeat_tx_create(byte_pool);
+    status = pdm_can_heartbeat_create(byte_pool);
     if (status != TX_SUCCESS) {
         return status;
     }
 
-    status = pdm_smbus_queue_tx_create(byte_pool);
+    status = pdm_smbus_queue_create(byte_pool);
     if (status != TX_SUCCESS) {
         return status;
     }
 
-    status = pdm_fans_tx_speed_tx_create(byte_pool);
+    status = pdm_fans_tx_speed_create(byte_pool);
 
     return status;
 };
