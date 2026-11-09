@@ -13,7 +13,6 @@ const uint8_t k_fan_read_lb_regs[] = {0x3FU, 0x4FU, 0x5FU};
 static TX_THREAD pdm_fans_tx_speed_thread;
 static uint8_t pdm_fans_tx_speed_stack[PDM_FANS_TX_SPEED_STACK_SIZE];
 
-SMBUS_StackHandleTypeDef context1;
 
 // Assumes conversion from rpm to tach has already happened
 // Assumes 1 byte with lost resolution, therefore only set HB and always set LB
@@ -66,42 +65,28 @@ void pdm_fan_can_callback_send() {
 
 // ONLY CALL IN A THREAD
 void pdm_fans_set_push_pull(bool is_push_pull, uint8_t controller_addr) {
-    uint8_t *piobuf = NULL;
-    piobuf = STACK_SMBUS_GetBuffer(&context1);
     st_command_t WRITE_PUSH_PULL = {0x2B, WRITE, 2, 0};
-    piobuf[0] = 0x0U; // Data that you're writing Table 5.5
+    uint8_t data = 0x0U; // Data that you're writing Table 5.5
     if (is_push_pull) {
-        piobuf[0] = 0x7U; // Data that you're writing Table 5.5
+        data = 0x7U; // Data that you're writing Table 5.5
     }
-    smbus_cmd_t cmd = {piobuf[0], controller_addr, WRITE_PUSH_PULL, true};
+    smbus_cmd_t cmd = {data, controller_addr, WRITE_PUSH_PULL, true};
     tx_queue_send(&smbus_queue, &cmd, TX_NO_WAIT);
 }
 
 // ONLY CALL IN A THREAD
 void pdm_fans_set_fsc(bool is_fsc, uint8_t controller_addr,
                       uint8_t fan_reg_addr) {
-    uint8_t *piobuf = NULL;
-    piobuf = STACK_SMBUS_GetBuffer(&context1);
     st_command_t WRITE_FSC_SETTINGS = {fan_reg_addr, WRITE, 2, 0};
     // Likely will change since PDM will power pumps instead
-    piobuf[0] = 0x3BU; // Default is 2B but for fans we're using 3B is correct
+    uint8_t data = 0x3BU; // Default is 2B but for fans we're using 3B is correct
                        // see Table 5.11
     if (is_fsc) {
         // FSC is the closed loop mode
-        piobuf[0] = 0xBBU; // Table 5.10
+        data = 0xBBU; // Table 5.10
     }
-    smbus_cmd_t cmd = {piobuf[0], controller_addr, WRITE_FSC_SETTINGS, true};
+    smbus_cmd_t cmd = {data, controller_addr, WRITE_FSC_SETTINGS, true};
     tx_queue_send(&smbus_queue, &cmd, TX_NO_WAIT);
-}
-
-void pdm_fans_init() {
-    HAL_GPIO_WritePin(THERM_EN_GPIO_Port, THERM_EN_Pin, GPIO_PIN_SET);
-    context1.Device = &hsmbus4;
-    context1.CMD_table = (st_command_t *)&PMBUS_COMMANDS_TAB[0];
-    context1.CMD_tableSize = PMBUS_COMMANDS_TAB_SIZE;
-    context1.SRByte = 0x55U;
-    context1.CurrentCommand = NULL;
-    STACK_SMBUS_Init(&context1);
 }
 
 UINT pdm_fans_tx_speed_tx_create(TX_BYTE_POOL *byte_pool) {

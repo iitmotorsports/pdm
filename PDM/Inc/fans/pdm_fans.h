@@ -20,7 +20,6 @@ extern const uint8_t k_fan_settings_regs[3];
 extern uint8_t fan_speeds[6];
 extern TX_QUEUE can_tx_queue;
 
-void pdm_fans_init();
 void pdm_fan_can_callback_recv(uint8_t rx_data[], uint8_t rx_data_len);
 void pdm_fan_can_callback_send();
 void pdm_fans_set_push_pull(bool is_push_pull, uint8_t controller_addr);

@@ -18,7 +18,19 @@ static uint8_t pdm_smbus_queue_stack[PDM_SMBUS_QUEUE_STACK_SIZE];
 TX_QUEUE smbus_queue;
 static ULONG smbus_queue_storage[SMBUS_QUEUE_DEPTH * SMBUS_QUEUE_OBJ_SIZE];
 
+SMBUS_StackHandleTypeDef context1;
+
 uint8_t fan_speeds[6];
+
+void pdm_fans_smbus_queue_init() {
+    HAL_GPIO_WritePin(THERM_EN_GPIO_Port, THERM_EN_Pin, GPIO_PIN_SET);
+    context1.Device = &hsmbus4;
+    context1.CMD_table = (st_command_t *)&PMBUS_COMMANDS_TAB[0];
+    context1.CMD_tableSize = PMBUS_COMMANDS_TAB_SIZE;
+    context1.SRByte = 0x55U;
+    context1.CurrentCommand = NULL;
+    STACK_SMBUS_Init(&context1);
+}
 
 UINT pdm_smbus_queue_tx_create(TX_BYTE_POOL *byte_pool) {
     UINT status = tx_thread_create(
