@@ -1,12 +1,11 @@
 #ifndef PDM_PDM_FANS_H
 #define PDM_PDM_FANS_H
+#include "can/pdm_can.h"
+#include "fans/pdm_fans_emc2303.h"
 #include "stm32_PMBUS_stack.h"
 #include "stm32_SMBUS_stack.h"
 #include "tx_api.h"
 #include <stdbool.h>
-#include "can/pdm_can.h"
-#include "fans/pdm_fans_emc2303.h"
-
 
 extern TX_QUEUE smbus_queue;
 extern uint8_t fan_speeds[6];

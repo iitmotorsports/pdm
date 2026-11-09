@@ -43,7 +43,7 @@ UINT pdm_smbus_queue_tx_create(TX_BYTE_POOL *byte_pool) {
     }
 
     status = tx_queue_create(&smbus_queue, "smbus_queue", SMBUS_QUEUE_OBJ_SIZE,
-                        smbus_queue_storage, sizeof(smbus_queue_storage));
+                             smbus_queue_storage, sizeof(smbus_queue_storage));
     return status;
 }
 

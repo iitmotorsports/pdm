@@ -18,8 +18,7 @@ void pdm_fan_can_callback_recv(uint8_t rx_data[], uint8_t rx_data_len) {
         if (rx_data[i] != 0) {
             if (i / 3 < 1) {
                 ctrler_1.write_speed(&ctrler_1, rx_data[i], (i % 3) + 1);
-            }
-            else {
+            } else {
                 ctrler_2.write_speed(&ctrler_1, rx_data[i], (i % 3) + 1);
             }
         }
@@ -27,16 +26,15 @@ void pdm_fan_can_callback_recv(uint8_t rx_data[], uint8_t rx_data_len) {
 }
 
 void pdm_fan_can_callback_send() {
-    for (uint8_t i = 0; i < (uint8_t)(sizeof(fan_speeds)/sizeof(fan_speeds[0])); i++) {
+    for (uint8_t i = 0;
+         i < (uint8_t)(sizeof(fan_speeds) / sizeof(fan_speeds[0])); i++) {
         if (i / 3 < 1) {
             ctrler_1.read_speed(&ctrler_1, (i % 3) + 1);
-        }
-        else {
+        } else {
             ctrler_2.read_speed(&ctrler_1, (i % 3) + 1);
         }
     }
 }
-
 
 UINT pdm_fans_tx_speed_tx_create(TX_BYTE_POOL *byte_pool) {
     UINT status = tx_thread_create(
@@ -48,7 +46,8 @@ UINT pdm_fans_tx_speed_tx_create(TX_BYTE_POOL *byte_pool) {
 }
 
 VOID pdm_fans_tx_speed_thread_entry(ULONG thread_input) {
-    // On each controller enable push_pull to match how our fan controllers are configured
+    // On each controller enable push_pull to match how our fan controllers are
+    // configured
     ctrler_1.set_push_pull(&ctrler_1, true);
     ctrler_2.set_push_pull(&ctrler_2, true);
     // On each fan
@@ -56,10 +55,11 @@ VOID pdm_fans_tx_speed_thread_entry(ULONG thread_input) {
         // Enable FSC mode to control the fan through RPM
         ctrler_1.set_fsc(&ctrler_1, true, i + 1);
         ctrler_2.set_fsc(&ctrler_2, true, i + 1);
-     }
+    }
     while (1) {
         pdm_fan_can_callback_send();
-        tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND / 4); // Sleep to let fan_speeds update
+        tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND /
+                        4); // Sleep to let fan_speeds update
         can_frame_t fan_speed_frame = {{0}, 8, 0x01};
         // fan_speeds's size is explicitly 6 so should be okay
         memcpy(fan_speed_frame.data, fan_speeds, sizeof(fan_speeds));

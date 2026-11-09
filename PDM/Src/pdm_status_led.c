@@ -10,7 +10,7 @@ UINT pdm_status_led_tx_create(TX_BYTE_POOL *byte_pool) {
         &pdm_status_led_thread, "pdm_status_led", pdm_status_led_thread_entry,
         0, pdm_status_led_stack, PDM_STATUS_LED_STACK_SIZE,
         PDM_STATUS_LED_PRIORITY, PDM_STATUS_LED_PRIORITY, 1, TX_AUTO_START);
-        return status;
+    return status;
 }
 VOID pdm_status_led_thread_entry(ULONG thread_input) {
     while (1) {

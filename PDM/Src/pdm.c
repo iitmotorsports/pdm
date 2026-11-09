@@ -1,7 +1,5 @@
 #include "pdm.h"
 
-
-
 void pdm_init() {
     // Show PDM is working before entering threads
     uint16_t i = 0;

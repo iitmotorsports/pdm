@@ -2,9 +2,9 @@
 #ifndef PDM_PDM_FANS_EMC2303_H
 #define PDM_PDM_FANS_EMC2303_H
 #include "stm32_SMBUS_stack.h"
-#include <stdint.h>
 #include "tx_api.h"
 #include <stdbool.h>
+#include <stdint.h>
 
 typedef struct {
     uint8_t data;
@@ -23,5 +23,6 @@ struct emc2303 {
     void (*set_push_pull)(emc2303_t *self, bool is_push_pull);
 };
 
-void pdm_fans_emc2303_init(emc2303_t *dev, uint8_t ctrler_addr, TX_QUEUE *smbus_queue);
-#endif //PDM_PDM_FANS_EMC2303_H
+void pdm_fans_emc2303_init(emc2303_t *dev, uint8_t ctrler_addr,
+                           TX_QUEUE *smbus_queue);
+#endif // PDM_PDM_FANS_EMC2303_H

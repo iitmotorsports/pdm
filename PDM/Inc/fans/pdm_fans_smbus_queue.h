@@ -4,7 +4,6 @@
 #include "tx_api.h"
 #include <stdbool.h>
 
-
 UINT pdm_smbus_queue_tx_create(TX_BYTE_POOL *byte_pool);
 void pdm_fans_smbus_queue_init();
 VOID pdm_smbus_queue_thread_entry(ULONG thread_input);
