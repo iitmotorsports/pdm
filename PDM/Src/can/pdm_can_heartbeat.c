@@ -19,7 +19,8 @@ UINT pdm_can_heartbeat_create(TX_BYTE_POOL *byte_pool) {
 VOID pdm_can_heartbeat_thread_entry(ULONG thread_input) {
     while (1) {
         can_frame_t heartbeat = {{0}, 8, 0x001};
-        memcpy(heartbeat.data, heartbeat_data, sizeof(heartbeat_data)/sizeof(heartbeat_data[0]));
+        memcpy(heartbeat.data, heartbeat_data,
+               sizeof(heartbeat_data) / sizeof(heartbeat_data[0]));
         tx_queue_send(&can_tx_queue, &heartbeat, TX_WAIT_FOREVER);
         tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND);
     }
