@@ -36,6 +36,11 @@ UINT pdm_threads_create(TX_BYTE_POOL *byte_pool) {
         return status;
     }
 
+    status = pdm_can_hsd_create(byte_pool);
+    if (status != TX_SUCCESS) {
+        return status;
+    }
+
     status = pdm_can_heartbeat_create(byte_pool);
     if (status != TX_SUCCESS) {
         return status;

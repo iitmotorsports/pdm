@@ -8,7 +8,6 @@
 
 UINT pdm_smbus_queue_create(TX_BYTE_POOL *byte_pool);
 void pdm_fans_smbus_queue_init();
-VOID pdm_smbus_queue_thread_entry(ULONG thread_input);
 extern const uint8_t k_controller_addrs[2];
 extern SMBUS_HandleTypeDef hsmbus4;
 

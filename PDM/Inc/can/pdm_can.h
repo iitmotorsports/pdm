@@ -19,11 +19,12 @@ enum canbus_ids {
     FAN_SEND = 0x02,
     FAN_RECEIVE = 0x102,
     HSD_RECEIVE = 0x103,
+    HSD_SEND = 0x104,
     SMBUS_MISC = 0x44,
 };
 
 void pdm_can_init();
 UINT pdm_can_tx_create(TX_BYTE_POOL *byte_pool);
-VOID pdm_can_tx_thread_entry();
+UINT pdm_can_hsd_create(TX_BYTE_POOL *byte_pool);
 
 #endif // PDM_PDM_CAN_H

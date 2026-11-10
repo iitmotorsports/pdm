@@ -31,20 +31,6 @@ void pdm_fans_smbus_queue_init() {
     STACK_SMBUS_Init(&context1);
 }
 
-UINT pdm_smbus_queue_create(TX_BYTE_POOL *byte_pool) {
-    UINT status = tx_thread_create(
-        &pdm_smbus_queue_thread, "pdm_smbus", pdm_smbus_queue_thread_entry, 0,
-        pdm_smbus_queue_stack, PDM_SMBUS_QUEUE_STACK_SIZE,
-        PDM_SMBUS_QUEUE_PRIORITY, PDM_SMBUS_QUEUE_PRIORITY, 1, TX_AUTO_START);
-    if (status != TX_SUCCESS) {
-        return status;
-    }
-
-    status = tx_queue_create(&smbus_queue, "smbus_queue", SMBUS_QUEUE_OBJ_SIZE,
-                             smbus_queue_storage, sizeof(smbus_queue_storage));
-    return status;
-}
-
 VOID pdm_smbus_queue_thread_entry(ULONG thread_input) {
     smbus_cmd_t *smbus_cmd = NULL;
     uint8_t *piobuf = NULL;
@@ -108,3 +94,18 @@ VOID pdm_smbus_queue_thread_entry(ULONG thread_input) {
         }
     }
 }
+
+UINT pdm_smbus_queue_create(TX_BYTE_POOL *byte_pool) {
+    UINT status = tx_thread_create(
+        &pdm_smbus_queue_thread, "pdm_smbus", pdm_smbus_queue_thread_entry, 0,
+        pdm_smbus_queue_stack, PDM_SMBUS_QUEUE_STACK_SIZE,
+        PDM_SMBUS_QUEUE_PRIORITY, PDM_SMBUS_QUEUE_PRIORITY, 1, TX_AUTO_START);
+    if (status != TX_SUCCESS) {
+        return status;
+    }
+
+    status = tx_queue_create(&smbus_queue, "smbus_queue", SMBUS_QUEUE_OBJ_SIZE,
+                             smbus_queue_storage, sizeof(smbus_queue_storage));
+    return status;
+}
+
