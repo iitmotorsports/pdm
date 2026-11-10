@@ -23,7 +23,6 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdbool.h>
-#include "../../PDM/Inc/pdm.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/

@@ -1,42 +1,74 @@
-// #include "fans/pdm_fans.h"
-//
-//
-//
-// const uint8_t k_controller_addrs[] = {0x5C, 0x5E}; // Assumes writing to
-// device | If reading needs to be ored with 0x1 3.1.2 const uint8_t
-// k_fan_settings_regs[] = {0x32U, 0x42U, 0x52U}; const uint8_t
-// k_fan_target_lb_regs[] = {0x3CU, 0x4CU, 0x5CU}; const uint8_t
-// k_fan_target_hb_regs[] = {0x3DU, 0x4DU, 0x5DU};
-//
-// SMBUS_HandleTypeDef context1;
-// context1.CMD_table = (st_command_t *) &PMBUS_COMMANDS_TAB[0];
-// context1.CMD_tableSize = PMBUS_COMMANDS_TAB_SIZE;
-// context1.SRByte = 0x55U;
-// context1.CurrentCommand = NULL;
-// STACK_SMBUS_Init(&context1);
-//
-// void pdm_fans_init() {
-//     HAL_GPIO_WritePin(THERM_EN_GPIO_Port, THERM_EN_Pin, GPIO_PIN_SET);
-//     uint8_t *piobuf = NULL;
-//     piobuf = STACK_SMBUS_GetBuffer(&context1);
-//
-//     for (uint8_t i = 0; i <
-//     (uint8_t)(sizeof(k_controller_addrs)/sizeof(k_controller_addrs[0])); i++)
-//     {
-//         st_command_t WRITE_PUSH_PULL = {0x2B, WRITE, 2, 0};
-//         piobuf[0] = 0x7; // Data that you're writing Table 5.5
-//         STACK_SMBUS_HostCommand(&context1, &WRITE_PUSH_PULL,
-//         k_controller_addrs[i], WRITE); while (STACK_SMBUS_IsBusy(&context1))
-//         {HAL_Delay(1);} for (uint8_t j = 0; j <
-//         (uint8_t)(sizeof(k_fan_settings_regs)/sizeof(k_fan_settings_regs[0]));
-//         j++) {
-//             piobuf = STACK_SMBUS_GetBuffer(&context1);
-//             // FSC is the closed loop mode
-//             st_command_t WRITE_FSC_SETTINGS = {k_fan_settings_regs[j], WRITE,
-//             2, 0}; piobuf[0] = 0xBB; // Table 5.10
-//             STACK_SMBUS_HostCommand(&context1, &WRITE_FSC_SETTINGS,
-//             k_controller_addrs[i], WRITE); while
-//             (STACK_SMBUS_IsBusy(&context1)) {HAL_Delay(1);}
-//         }
-//     }
-// }
+#include "fans/pdm_fans.h"
+
+const uint8_t k_controller_addrs[] = {0x5C, 0x5E};
+
+#define PDM_FANS_TX_SPEED_STACK_SIZE 512
+#define PDM_FANS_TX_SPEED_PRIORITY 20
+
+#define NUM_FANS 3
+
+static TX_THREAD pdm_fans_tx_speed_thread;
+static uint8_t pdm_fans_tx_speed_stack[PDM_FANS_TX_SPEED_STACK_SIZE];
+
+emc2303_t ctrler_1;
+emc2303_t ctrler_2;
+
+void pdm_fan_can_callback_recv(uint8_t rx_data[], uint8_t rx_data_len) {
+    for (uint8_t i = 0; i < rx_data_len; i++) {
+        if (rx_data[i] != 0) {
+            if (i / 3 < 1) {
+                ctrler_1.write_speed(&ctrler_1, rx_data[i], (i % 3) + 1);
+            } else {
+                ctrler_2.write_speed(&ctrler_1, rx_data[i], (i % 3) + 1);
+            }
+        }
+    }
+}
+
+void pdm_fan_update() {
+    for (uint8_t i = 0;
+         i < (uint8_t)(sizeof(fan_speeds) / sizeof(fan_speeds[0])); i++) {
+        if (i / 3 < 1) {
+            ctrler_1.read_speed(&ctrler_1, (i % 3) + 1);
+        } else {
+            ctrler_2.read_speed(&ctrler_1, (i % 3) + 1);
+        }
+    }
+}
+
+UINT pdm_fans_tx_speed_create(TX_BYTE_POOL *byte_pool) {
+    UINT status = tx_thread_create(
+        &pdm_fans_tx_speed_thread, "pdm_can_tx_fan_speed",
+        pdm_fans_tx_speed_thread_entry, 0, pdm_fans_tx_speed_stack,
+        PDM_FANS_TX_SPEED_STACK_SIZE, PDM_FANS_TX_SPEED_PRIORITY,
+        PDM_FANS_TX_SPEED_PRIORITY, 1, TX_AUTO_START);
+    return status;
+}
+
+VOID pdm_fans_tx_speed_thread_entry(ULONG thread_input) {
+    // On each controller enable push_pull to match how our fan controllers are
+    // configured
+    ctrler_1.set_push_pull(&ctrler_1, true);
+    ctrler_2.set_push_pull(&ctrler_2, true);
+    // On each fan
+    for (uint8_t i = 0; i < NUM_FANS; i++) {
+        // Enable FSC mode to control the fan through RPM
+        ctrler_1.set_fsc(&ctrler_1, true, i + 1);
+        ctrler_2.set_fsc(&ctrler_2, true, i + 1);
+    }
+    while (1) {
+        pdm_fan_update();
+        tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND /
+                        4); // Sleep to let fan_speeds update
+        can_frame_t fan_speed_frame = {{0}, 8, 0x01};
+        // fan_speeds's size is explicitly 6 so should be okay
+        memcpy(fan_speed_frame.data, fan_speeds, sizeof(fan_speeds));
+        tx_queue_send(&can_tx_queue, &fan_speed_frame, TX_NO_WAIT);
+        tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND * 3 / 4);
+    }
+}
+
+void pdm_fans_init() {
+    pdm_fans_emc2303_init(&ctrler_1, k_controller_addrs[0], &smbus_queue);
+    pdm_fans_emc2303_init(&ctrler_2, k_controller_addrs[1], &smbus_queue);
+}
