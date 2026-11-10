@@ -43,3 +43,7 @@
 
 # build
 /build/
+
+
+# Ignore HawkDrive cache
+.hawkdrive/
