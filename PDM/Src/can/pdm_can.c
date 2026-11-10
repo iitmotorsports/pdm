@@ -23,8 +23,6 @@ const GPIO_Pin_t k_hsd_pins[4] = {
     {HSEN4_GPIO_Port, HSEN4_Pin},
 };
 
-
-
 void pdm_can_init() {
     HAL_GPIO_WritePin(TERM_EN_GPIO_Port, TERM_EN_Pin, GPIO_PIN_SET);
 
@@ -52,7 +50,7 @@ void pdm_can_hsd_callback_recv(uint8_t rx_data[], uint8_t rx_data_len) {
             HAL_GPIO_WritePin(k_hsd_pins[i].port, k_hsd_pins[i].pin,
                               rx_data[i] & 0x1F ? GPIO_PIN_SET
                                                 : GPIO_PIN_RESET);
-            }
+        }
     }
 }
 
@@ -138,9 +136,12 @@ VOID pdm_can_hsd_thread_entry() {
     while (1) {
         uint8_t hsd_data[sizeof(k_hsd_pins) / sizeof(k_hsd_pins[0])] = {0};
         for (int i = 0; i < sizeof(k_hsd_pins) / sizeof(k_hsd_pins[0]); i++) {
-            hsd_data[i] = HAL_GPIO_ReadPin(k_hsd_pins[i].port, k_hsd_pins[i].pin) == GPIO_PIN_SET ? 1 : 0;
+            hsd_data[i] = HAL_GPIO_ReadPin(k_hsd_pins[i].port,
+                                           k_hsd_pins[i].pin) == GPIO_PIN_SET
+                              ? 1
+                              : 0;
         }
-        can_frame_t can_frame = { {0}, 8, HSD_SEND };
+        can_frame_t can_frame = {{0}, 8, HSD_SEND};
         memcpy(can_frame.data, hsd_data, sizeof(hsd_data));
         tx_queue_send(&can_tx_queue, &can_frame, TX_NO_WAIT);
         tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND);
@@ -148,9 +149,9 @@ VOID pdm_can_hsd_thread_entry() {
 }
 
 UINT pdm_can_hsd_create(TX_BYTE_POOL *byte_pool) {
-    UINT status = tx_thread_create(&pdm_can_hsd_thread, "pdm_can_hsd",
-                              pdm_can_hsd_thread_entry, 0, pdm_can_hsd_stack,
-                              PDM_CAN_HSD_STACK_SIZE, PDM_CAN_HSD_PRIORITY,
-                              PDM_CAN_HSD_PRIORITY, 1, TX_AUTO_START);
+    UINT status = tx_thread_create(
+        &pdm_can_hsd_thread, "pdm_can_hsd", pdm_can_hsd_thread_entry, 0,
+        pdm_can_hsd_stack, PDM_CAN_HSD_STACK_SIZE, PDM_CAN_HSD_PRIORITY,
+        PDM_CAN_HSD_PRIORITY, 1, TX_AUTO_START);
     return status;
 }
