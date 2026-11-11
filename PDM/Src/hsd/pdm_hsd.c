@@ -1,4 +1,4 @@
-#include "pdm_hsd.h"
+#include "hsd/pdm_hsd.h"
 
 #define PDM_CAN_HSD_STACK_SIZE 512
 #define PDM_CAN_HSD_PRIORITY 20

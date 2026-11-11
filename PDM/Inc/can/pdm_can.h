@@ -2,10 +2,10 @@
 #define PDM_PDM_CAN_H
 
 #include "fans/pdm_fans.h"
+#include "hsd/pdm_hsd.h"
 #include "hawkdrive_can.h"
 #include "main.h"
 #include "tx_api.h"
-#include "pdm_hsd.h"
 #include <string.h>
 
 extern FDCAN_HandleTypeDef hfdcan1;
