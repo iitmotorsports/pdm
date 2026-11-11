@@ -15,5 +15,4 @@ void pdm_fans_init();
 void pdm_fan_can_callback_recv(uint8_t rx_data[], uint8_t rx_data_len);
 void pdm_fan_can_callback_send();
 UINT pdm_fans_tx_speed_create(TX_BYTE_POOL *byte_pool);
-VOID pdm_fans_tx_speed_thread_entry(ULONG thread_input);
 #endif // PDM_PDM_FANS_H

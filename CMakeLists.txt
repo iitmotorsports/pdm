@@ -34,6 +34,8 @@ enable_language(C ASM)
 file(GLOB_RECURSE PDM_CODE_SOURCES
         "PDM/Src/*.c"
         "PDM/Inc/*.h"
+        "HawkDrive/Src/*.c"
+        "HawkDrive/Inc/*.h"
 )
 
 # Create an executable object type
@@ -52,7 +54,9 @@ add_executable(${CMAKE_PROJECT_NAME}
         PDM/Src/fans/pdm_fans_smbus_queue.c
         PDM/Inc/fans/pdm_fans_smbus_queue.h
         PDM/Src/fans/pdm_fans_emc2303.c
-        PDM/Inc/fans/pdm_fans_emc2303.h)
+        PDM/Inc/fans/pdm_fans_emc2303.h
+        HawkDrive/Inc/hawkdrive_can.h
+        HawkDrive/Src/hawkdrive_can.c)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
@@ -77,9 +81,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
-    ${CMAKE_CURRENT_SOURCE_DIR}/PDM
-    ${CMAKE_CURRENT_SOURCE_DIR}/PDM/Src
     ${CMAKE_CURRENT_SOURCE_DIR}/PDM/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/HawkDrive/Inc
 )
 
 # Add project symbols (macros)

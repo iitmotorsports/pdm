@@ -36,15 +36,6 @@ void pdm_fan_update() {
     }
 }
 
-UINT pdm_fans_tx_speed_create(TX_BYTE_POOL *byte_pool) {
-    UINT status = tx_thread_create(
-        &pdm_fans_tx_speed_thread, "pdm_can_tx_fan_speed",
-        pdm_fans_tx_speed_thread_entry, 0, pdm_fans_tx_speed_stack,
-        PDM_FANS_TX_SPEED_STACK_SIZE, PDM_FANS_TX_SPEED_PRIORITY,
-        PDM_FANS_TX_SPEED_PRIORITY, 1, TX_AUTO_START);
-    return status;
-}
-
 VOID pdm_fans_tx_speed_thread_entry(ULONG thread_input) {
     // On each controller enable push_pull to match how our fan controllers are
     // configured
@@ -66,6 +57,15 @@ VOID pdm_fans_tx_speed_thread_entry(ULONG thread_input) {
         tx_queue_send(&can_tx_queue, &fan_speed_frame, TX_NO_WAIT);
         tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND * 3 / 4);
     }
+}
+
+UINT pdm_fans_tx_speed_create(TX_BYTE_POOL *byte_pool) {
+    UINT status = tx_thread_create(
+        &pdm_fans_tx_speed_thread, "pdm_can_tx_fan_speed",
+        pdm_fans_tx_speed_thread_entry, 0, pdm_fans_tx_speed_stack,
+        PDM_FANS_TX_SPEED_STACK_SIZE, PDM_FANS_TX_SPEED_PRIORITY,
+        PDM_FANS_TX_SPEED_PRIORITY, 1, TX_AUTO_START);
+    return status;
 }
 
 void pdm_fans_init() {

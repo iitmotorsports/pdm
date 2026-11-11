@@ -1,16 +1,16 @@
 #include "can/pdm_can.h"
+#include <sys/types.h>
 
-#define SMBUS_QUEUE_DEPTH 12
-#define SMBUS_QUEUE_OBJ_SIZE (sizeof(can_frame_t) / sizeof(ULONG))
+#define CAN_QUEUE_DEPTH 12
+#define CAN_QUEUE_OBJ_SIZE (sizeof(can_frame_t) / sizeof(ULONG))
+
+TX_QUEUE can_tx_queue;
+static ULONG can_tx_queue_storage[CAN_QUEUE_DEPTH * CAN_QUEUE_OBJ_SIZE];
 
 #define PDM_CAN_TX_STACK_SIZE 512
 #define PDM_CAN_TX_PRIORITY 20
-
 static TX_THREAD pdm_can_tx_thread;
 static uint8_t pdm_can_tx_stack[PDM_CAN_TX_STACK_SIZE];
-
-TX_QUEUE can_tx_queue;
-static ULONG can_tx_queue_storage[SMBUS_QUEUE_DEPTH * SMBUS_QUEUE_OBJ_SIZE];
 
 void pdm_can_init() {
     HAL_GPIO_WritePin(TERM_EN_GPIO_Port, TERM_EN_Pin, GPIO_PIN_SET);
@@ -51,7 +51,7 @@ void pdm_can_tx(const uint8_t tx_data[], uint8_t tx_data_len, uint16_t tx_id) {
     TxHeader.FDFormat = FDCAN_CLASSIC_CAN;
     TxHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
     TxHeader.MessageMarker = 0;
-    if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, tx_data) != HAL_OK) {
+    if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, payload) != HAL_OK) {
         Error_Handler();
     }
 }
@@ -61,15 +61,31 @@ void pdm_can_rx(uint8_t rx_data[], uint8_t rx_data_len, uint16_t rx_id) {
     // Handler based on rx_id
     case FAN_RECEIVE: // ENUM Declared in pdm_can.h
         pdm_fan_can_callback_recv(rx_data, rx_data_len);
+        break;
+    case HAWKDRIVE_CAN_PCM_HSD_COMMAND_FRAME_ID:
+        pdm_can_hsd_callback_recv(rx_data, rx_data_len);
+        break;
     default:
         // Do nothing for unrecognized CAN messages
         break;
     }
 }
 
+VOID pdm_can_tx_thread_entry() {
+    while (1) {
+        can_frame_t can_frame;
+        UINT status =
+            tx_queue_receive(&can_tx_queue, &can_frame, TX_WAIT_FOREVER);
+        if (status != TX_SUCCESS) {
+            Error_Handler();
+        }
+        pdm_can_tx(can_frame.data, can_frame.data_len, can_frame.id);
+    }
+}
+
 UINT pdm_can_tx_create(TX_BYTE_POOL *byte_pool) {
     UINT status =
-        tx_queue_create(&can_tx_queue, "can_tx_queue", SMBUS_QUEUE_OBJ_SIZE,
+        tx_queue_create(&can_tx_queue, "can_tx_queue", CAN_QUEUE_OBJ_SIZE,
                         can_tx_queue_storage, sizeof(can_tx_queue_storage));
     if (status != TX_SUCCESS) {
         return status;
@@ -79,16 +95,6 @@ UINT pdm_can_tx_create(TX_BYTE_POOL *byte_pool) {
                               PDM_CAN_TX_STACK_SIZE, PDM_CAN_TX_PRIORITY,
                               PDM_CAN_TX_PRIORITY, 1, TX_AUTO_START);
     return status;
-}
-
-VOID pdm_can_tx_thread_entry() {
-    can_frame_t *can_frame = NULL;
-    UINT status = tx_queue_receive(&can_tx_queue, (can_frame_t *)&can_frame,
-                                   TX_WAIT_FOREVER);
-    if (status != TX_SUCCESS) {
-        Error_Handler();
-    }
-    pdm_can_tx(can_frame->data, can_frame->data_len, can_frame->id);
 }
 
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan,
