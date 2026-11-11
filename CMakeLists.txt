@@ -81,10 +81,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
-    ${CMAKE_CURRENT_SOURCE_DIR}/PDM
-    ${CMAKE_CURRENT_SOURCE_DIR}/PDM/Src
     ${CMAKE_CURRENT_SOURCE_DIR}/PDM/Inc
-    ${CMAKE_CURRENT_SOURCE_DIR}/HawkDrive/Src
     ${CMAKE_CURRENT_SOURCE_DIR}/HawkDrive/Inc
 )
 
