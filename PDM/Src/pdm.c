@@ -11,8 +11,8 @@ void pdm_init() {
         i += 50;
     }
     pdm_can_init();
-    pdm_fans_init();
-    pdm_fans_smbus_queue_init();
+    // pdm_fans_init();
+    // pdm_fans_smbus_queue_init();
 }
 
 void pdm_main_loop() {
@@ -46,12 +46,12 @@ UINT pdm_threads_create(TX_BYTE_POOL *byte_pool) {
         return status;
     }
 
-    status = pdm_smbus_queue_create(byte_pool);
-    if (status != TX_SUCCESS) {
-        return status;
-    }
-
-    status = pdm_fans_tx_speed_create(byte_pool);
+    // status = pdm_smbus_queue_create(byte_pool);
+    // if (status != TX_SUCCESS) {
+    //     return status;
+    // }
+    //
+    // status = pdm_fans_tx_speed_create(byte_pool);
 
     return status;
 };

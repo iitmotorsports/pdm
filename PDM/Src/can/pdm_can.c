@@ -98,7 +98,7 @@ void pdm_can_tx(const uint8_t tx_data[], uint8_t tx_data_len, uint16_t tx_id) {
     TxHeader.FDFormat = FDCAN_CLASSIC_CAN;
     TxHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
     TxHeader.MessageMarker = 0;
-    if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, tx_data) != HAL_OK) {
+    if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, payload) != HAL_OK) {
         Error_Handler();
     }
 }
@@ -108,8 +108,10 @@ void pdm_can_rx(uint8_t rx_data[], uint8_t rx_data_len, uint16_t rx_id) {
     // Handler based on rx_id
     case FAN_RECEIVE: // ENUM Declared in pdm_can.h
         pdm_fan_can_callback_recv(rx_data, rx_data_len);
+        break;
     case HAWKDRIVE_CAN_PCM_HSD_COMMAND_FRAME_ID:
         pdm_can_hsd_callback_recv(rx_data, rx_data_len);
+        break;
     default:
         // Do nothing for unrecognized CAN messages
         break;
@@ -118,13 +120,13 @@ void pdm_can_rx(uint8_t rx_data[], uint8_t rx_data_len, uint16_t rx_id) {
 
 VOID pdm_can_tx_thread_entry() {
     while (1) {
-        can_frame_t *can_frame = NULL;
-        UINT status = tx_queue_receive(&can_tx_queue, (can_frame_t *)&can_frame,
+        can_frame_t can_frame;
+        UINT status = tx_queue_receive(&can_tx_queue, &can_frame,
                                        TX_WAIT_FOREVER);
         if (status != TX_SUCCESS) {
             Error_Handler();
         }
-        pdm_can_tx(can_frame->data, can_frame->data_len, can_frame->id);
+        pdm_can_tx(can_frame.data, can_frame.data_len, can_frame.id);
     }
 }
 
@@ -190,7 +192,7 @@ VOID pdm_can_hsd_thread_entry() {
         hawkdrive_can_pdm_hsd_status_pack(hsd_status_data, &hsd_status,
                                           sizeof(hsd_status_data) /
                                               sizeof(hsd_status_data[0]));
-        can_frame_t can_frame = {{0}, 8, HAWKDRIVE_CAN_PDM_HSD_STATUS_FRAME_ID};
+        can_frame_t can_frame = {{0}, HAWKDRIVE_CAN_PDM_HSD_STATUS_LENGTH, HAWKDRIVE_CAN_PDM_HSD_STATUS_FRAME_ID};
         memcpy(can_frame.data, hsd_status_data, sizeof(hsd_status_data));
         tx_queue_send(&can_tx_queue, &can_frame, TX_NO_WAIT);
         tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND);
