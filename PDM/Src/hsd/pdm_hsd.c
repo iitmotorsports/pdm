@@ -79,7 +79,9 @@ VOID pdm_can_hsd_thread_entry() {
         hawkdrive_can_pdm_hsd_status_pack(hsd_status_data, &hsd_status,
                                           sizeof(hsd_status_data) /
                                               sizeof(hsd_status_data[0]));
-        can_frame_t can_frame = {{0}, HAWKDRIVE_CAN_PDM_HSD_STATUS_LENGTH, HAWKDRIVE_CAN_PDM_HSD_STATUS_FRAME_ID};
+        can_frame_t can_frame = {{0},
+                                 HAWKDRIVE_CAN_PDM_HSD_STATUS_LENGTH,
+                                 HAWKDRIVE_CAN_PDM_HSD_STATUS_FRAME_ID};
         memcpy(can_frame.data, hsd_status_data, sizeof(hsd_status_data));
         tx_queue_send(&can_tx_queue, &can_frame, TX_NO_WAIT);
         tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND);

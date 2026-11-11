@@ -32,7 +32,6 @@ void pdm_can_init() {
     HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
 }
 
-
 void pdm_can_tx(const uint8_t tx_data[], uint8_t tx_data_len, uint16_t tx_id) {
     uint8_t payload[8] = {0}; // zero-init 8 bytes
     // Can't transmit more than 8 bytes
@@ -75,8 +74,8 @@ void pdm_can_rx(uint8_t rx_data[], uint8_t rx_data_len, uint16_t rx_id) {
 VOID pdm_can_tx_thread_entry() {
     while (1) {
         can_frame_t can_frame;
-        UINT status = tx_queue_receive(&can_tx_queue, &can_frame,
-                                       TX_WAIT_FOREVER);
+        UINT status =
+            tx_queue_receive(&can_tx_queue, &can_frame, TX_WAIT_FOREVER);
         if (status != TX_SUCCESS) {
             Error_Handler();
         }
