@@ -5,6 +5,7 @@
 #include "main.h"
 #include "tx_api.h"
 #include <string.h>
+#include "hawkdrive_can.h"
 
 extern FDCAN_HandleTypeDef hfdcan1;
 
