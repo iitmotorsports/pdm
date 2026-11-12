@@ -1,6 +1,6 @@
 #include "fans/pdm_fans_smbus_queue.h"
 
-#define PDM_SMBUS_QUEUE_STACK_SIZE 512
+#define PDM_SMBUS_QUEUE_STACK_SIZE 2048
 #define PDM_SMBUS_QUEUE_PRIORITY 20
 
 static TX_THREAD pdm_smbus_queue_thread;
@@ -32,19 +32,19 @@ void pdm_fans_smbus_queue_init() {
 }
 
 VOID pdm_smbus_queue_thread_entry(ULONG thread_input) {
-    smbus_cmd_t *smbus_cmd = NULL;
+    smbus_cmd_t smbus_cmd;
     uint8_t *piobuf = NULL;
     while (1) {
-        UINT status = tx_queue_receive(&smbus_queue, (smbus_cmd_t *)&smbus_cmd,
+        UINT status = tx_queue_receive(&smbus_queue, &smbus_cmd,
                                        TX_WAIT_FOREVER);
         if (status != TX_SUCCESS) {
             Error_Handler();
         }
         piobuf = STACK_SMBUS_GetBuffer(&context1);
-        piobuf[0] = smbus_cmd->data;
-        STACK_SMBUS_HostCommand(&context1, &smbus_cmd->command,
-                                smbus_cmd->controller_addr,
-                                smbus_cmd->write ? WRITE : READ);
+        piobuf[0] = smbus_cmd.data;
+        STACK_SMBUS_HostCommand(&context1, &smbus_cmd.command,
+                                smbus_cmd.controller_addr,
+                                smbus_cmd.write ? WRITE : READ);
         uint8_t elapsed = 0;
         while (STACK_SMBUS_IsBusy(&context1) && elapsed < TIMEOUT) {
             elapsed++;
@@ -53,17 +53,17 @@ VOID pdm_smbus_queue_thread_entry(ULONG thread_input) {
         if (elapsed >= TIMEOUT) {
             Error_Handler(); // TODO: SMBUS never recieved a response
         }
-        if (!smbus_cmd->write) {
+        if (!smbus_cmd.write) {
             const uint8_t result = piobuf[0];
             // 1. Check if it's a fan write
             // 2. Determine fan #
             // 3. Write speed to corresponding array slot
             //  4. If not a fan read be very confused
-            switch (smbus_cmd->command.cmnd_code) {
+            switch (smbus_cmd.command.cmnd_code) {
             case READ_HB: {
                 uint8_t fan_offset =
-                    smbus_cmd->controller_addr == k_controller_addrs[0] ? 0 : 2;
-                uint8_t nibble = ((smbus_cmd->command.cmnd_code & 0xF0) >> 4);
+                    smbus_cmd.controller_addr == k_controller_addrs[0] ? 0 : 3;
+                uint8_t nibble = (smbus_cmd.command.cmnd_code & 0xF0U) >> 4U;
                 if (nibble < 0x3U) {
                     Error_Handler();
                 }
@@ -84,8 +84,8 @@ VOID pdm_smbus_queue_thread_entry(ULONG thread_input) {
                 // Log any unimplemented
                 {
                     can_frame_t smbus_response = {{0}, 8, 0x044};
-                    smbus_response.data[0] = smbus_cmd->controller_addr;
-                    smbus_response.data[1] = smbus_cmd->command.cmnd_code;
+                    smbus_response.data[0] = smbus_cmd.controller_addr;
+                    smbus_response.data[1] = smbus_cmd.command.cmnd_code;
                     smbus_response.data[2] = result;
                     tx_queue_send(&can_tx_queue, &smbus_response, TX_NO_WAIT);
                     break;

@@ -2,7 +2,7 @@
 
 const uint8_t k_controller_addrs[] = {0x5C, 0x5E};
 
-#define PDM_FANS_TX_SPEED_STACK_SIZE 512
+#define PDM_FANS_TX_SPEED_STACK_SIZE 1024
 #define PDM_FANS_TX_SPEED_PRIORITY 20
 
 #define NUM_FANS 3
@@ -19,7 +19,7 @@ void pdm_fan_can_callback_recv(uint8_t rx_data[], uint8_t rx_data_len) {
             if (i / 3 < 1) {
                 ctrler_1.write_speed(&ctrler_1, rx_data[i], (i % 3) + 1);
             } else {
-                ctrler_2.write_speed(&ctrler_1, rx_data[i], (i % 3) + 1);
+                ctrler_2.write_speed(&ctrler_2, rx_data[i], (i % 3) + 1);
             }
         }
     }
@@ -31,7 +31,7 @@ void pdm_fan_update() {
         if (i / 3 < 1) {
             ctrler_1.read_speed(&ctrler_1, (i % 3) + 1);
         } else {
-            ctrler_2.read_speed(&ctrler_1, (i % 3) + 1);
+            ctrler_2.read_speed(&ctrler_2, (i % 3) + 1);
         }
     }
 }
