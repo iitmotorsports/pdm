@@ -33,7 +33,7 @@ void pdm_fans_emc2303_read_speed(emc2303_t *dev, uint8_t fan_num) {
     // Read HB before LB (in theory lb is always 0 though)
     smbus_cmd_t cmd_lb = {
         0U, fan_ctrler_addr, {fan_address, READ, 1, 1}, false};
-    fan_address = k_fan_target_hb_regs[fan_ctrler_num];
+    fan_address = k_fan_read_hb_regs[fan_ctrler_num];
     smbus_cmd_t cmd_hb = {
         0U, fan_ctrler_addr, {fan_address, READ, 1, 1}, false};
     tx_queue_send(dev->smbus_queue, &cmd_hb, TX_NO_WAIT);

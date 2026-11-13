@@ -18,8 +18,8 @@ typedef struct {
 
 enum canbus_ids {
     PDM_HEARTBEAT = 0x001,
-    FAN_SEND = 0x02,
-    FAN_RECEIVE = 0x102,
+    FAN_STATUS = 0x02,
+    FAN_CMD = 0x102,
     SMBUS_MISC = 0x44,
 };
 

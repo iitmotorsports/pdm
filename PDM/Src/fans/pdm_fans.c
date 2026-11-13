@@ -2,7 +2,7 @@
 
 const uint8_t k_controller_addrs[] = {0x5C, 0x5E};
 
-#define PDM_FANS_TX_SPEED_STACK_SIZE 512
+#define PDM_FANS_TX_SPEED_STACK_SIZE 1024
 #define PDM_FANS_TX_SPEED_PRIORITY 20
 
 #define NUM_FANS 3
@@ -10,16 +10,19 @@ const uint8_t k_controller_addrs[] = {0x5C, 0x5E};
 static TX_THREAD pdm_fans_tx_speed_thread;
 static uint8_t pdm_fans_tx_speed_stack[PDM_FANS_TX_SPEED_STACK_SIZE];
 
-emc2303_t ctrler_1;
-emc2303_t ctrler_2;
+static emc2303_t ctrler_1;
+static emc2303_t ctrler_2;
 
 void pdm_fan_can_callback_recv(uint8_t rx_data[], uint8_t rx_data_len) {
+    if (rx_data_len > 6) {
+        rx_data_len = 6;
+    }
     for (uint8_t i = 0; i < rx_data_len; i++) {
         if (rx_data[i] != 0) {
-            if (i / 3 < 1) {
+            if (i < NUM_FANS) {
                 ctrler_1.write_speed(&ctrler_1, rx_data[i], (i % 3) + 1);
             } else {
-                ctrler_2.write_speed(&ctrler_1, rx_data[i], (i % 3) + 1);
+                ctrler_2.write_speed(&ctrler_2, rx_data[i], (i % 3) + 1);
             }
         }
     }
@@ -31,7 +34,7 @@ void pdm_fan_update() {
         if (i / 3 < 1) {
             ctrler_1.read_speed(&ctrler_1, (i % 3) + 1);
         } else {
-            ctrler_2.read_speed(&ctrler_1, (i % 3) + 1);
+            ctrler_2.read_speed(&ctrler_2, (i % 3) + 1);
         }
     }
 }
@@ -51,7 +54,7 @@ VOID pdm_fans_tx_speed_thread_entry(ULONG thread_input) {
         pdm_fan_update();
         tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND /
                         4); // Sleep to let fan_speeds update
-        can_frame_t fan_speed_frame = {{0}, 8, 0x01};
+        can_frame_t fan_speed_frame = {{0}, 8, FAN_STATUS};
         // fan_speeds's size is explicitly 6 so should be okay
         memcpy(fan_speed_frame.data, fan_speeds, sizeof(fan_speeds));
         tx_queue_send(&can_tx_queue, &fan_speed_frame, TX_NO_WAIT);
