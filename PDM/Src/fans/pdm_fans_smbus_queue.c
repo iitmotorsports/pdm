@@ -9,7 +9,8 @@ static TX_THREAD pdm_smbus_queue_thread;
 static uint8_t pdm_smbus_queue_stack[PDM_SMBUS_QUEUE_STACK_SIZE];
 
 #define SMBUS_QUEUE_DEPTH 16
-#define SMBUS_QUEUE_OBJ_SIZE ((sizeof(smbus_cmd_t) + sizeof(ULONG) - 1U) / sizeof(ULONG))
+#define SMBUS_QUEUE_OBJ_SIZE                                                   \
+    ((sizeof(smbus_cmd_t) + sizeof(ULONG) - 1U) / sizeof(ULONG))
 
 TX_QUEUE smbus_queue;
 static ULONG smbus_queue_storage[SMBUS_QUEUE_DEPTH * SMBUS_QUEUE_OBJ_SIZE];
@@ -18,7 +19,6 @@ static ULONG smbus_queue_storage[SMBUS_QUEUE_DEPTH * SMBUS_QUEUE_OBJ_SIZE];
 #define READ_LB 0xFU
 
 #define TIMEOUT (TX_TIMER_TICKS_PER_SECOND / 10)
-
 
 SMBUS_StackHandleTypeDef context1;
 
@@ -38,8 +38,8 @@ VOID pdm_smbus_queue_thread_entry(ULONG thread_input) {
     smbus_cmd_t smbus_cmd;
     uint8_t *piobuf = NULL;
     while (1) {
-        UINT status = tx_queue_receive(&smbus_queue, &smbus_cmd,
-                                       TX_WAIT_FOREVER);
+        UINT status =
+            tx_queue_receive(&smbus_queue, &smbus_cmd, TX_WAIT_FOREVER);
         if (status != TX_SUCCESS) {
             Error_Handler();
         }
@@ -54,7 +54,8 @@ VOID pdm_smbus_queue_thread_entry(ULONG thread_input) {
             tx_thread_sleep(1);
         }
         if (elapsed >= TIMEOUT) {
-            can_frame_t error_can = {{'s', 'm', 'b', ' ', 'e', 'r', 'r'}, 7, SMBUS_MISC};
+            can_frame_t error_can = {
+                {'s', 'm', 'b', ' ', 'e', 'r', 'r'}, 7, SMBUS_MISC};
             tx_queue_send(&can_tx_queue, &error_can, TX_NO_WAIT);
             continue;
         }
