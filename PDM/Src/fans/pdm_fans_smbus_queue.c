@@ -8,7 +8,7 @@
 static TX_THREAD pdm_smbus_queue_thread;
 static uint8_t pdm_smbus_queue_stack[PDM_SMBUS_QUEUE_STACK_SIZE];
 
-#define SMBUS_QUEUE_DEPTH 12
+#define SMBUS_QUEUE_DEPTH 16
 #define SMBUS_QUEUE_OBJ_SIZE ((sizeof(smbus_cmd_t) + sizeof(ULONG) - 1U) / sizeof(ULONG))
 
 TX_QUEUE smbus_queue;
