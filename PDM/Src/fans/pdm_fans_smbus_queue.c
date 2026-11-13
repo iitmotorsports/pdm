@@ -54,6 +54,7 @@ VOID pdm_smbus_queue_thread_entry(ULONG thread_input) {
             tx_thread_sleep(1);
         }
         if (elapsed >= TIMEOUT) {
+            // TODO: Proper error handling project-wide
             can_frame_t error_can = {
                 {'s', 'm', 'b', ' ', 'e', 'r', 'r'}, 7, SMBUS_MISC};
             tx_queue_send(&can_tx_queue, &error_can, TX_NO_WAIT);
