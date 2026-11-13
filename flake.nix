@@ -22,6 +22,7 @@
                         savvycan
                         clang
                         clang-tools
+                        gdb
                     ];
                 };
             };

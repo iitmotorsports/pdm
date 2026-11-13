@@ -7,15 +7,16 @@ static TX_THREAD pdm_smbus_queue_thread;
 static uint8_t pdm_smbus_queue_stack[PDM_SMBUS_QUEUE_STACK_SIZE];
 
 #define SMBUS_QUEUE_DEPTH 12
-#define SMBUS_QUEUE_OBJ_SIZE (sizeof(smbus_cmd_t) / sizeof(ULONG))
+#define SMBUS_QUEUE_OBJ_SIZE ((sizeof(smbus_cmd_t) + sizeof(ULONG) - 1U) / sizeof(ULONG))
+
+TX_QUEUE smbus_queue;
+static ULONG smbus_queue_storage[SMBUS_QUEUE_DEPTH * SMBUS_QUEUE_OBJ_SIZE];
 
 #define READ_HB 0xEU
 #define READ_LB 0xFU
 
 #define TIMEOUT (TX_TIMER_TICKS_PER_SECOND / 10)
 
-TX_QUEUE smbus_queue;
-static ULONG smbus_queue_storage[SMBUS_QUEUE_DEPTH * SMBUS_QUEUE_OBJ_SIZE];
 
 SMBUS_StackHandleTypeDef context1;
 
@@ -59,7 +60,7 @@ VOID pdm_smbus_queue_thread_entry(ULONG thread_input) {
             // 2. Determine fan #
             // 3. Write speed to corresponding array slot
             //  4. If not a fan read be very confused
-            switch (smbus_cmd.command.cmnd_code) {
+            switch (smbus_cmd.command.cmnd_code & 0xF) {
             case READ_HB: {
                 uint8_t fan_offset =
                     smbus_cmd.controller_addr == k_controller_addrs[0] ? 0 : 3;
