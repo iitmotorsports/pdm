@@ -59,7 +59,7 @@ void pdm_can_tx(const uint8_t tx_data[], uint8_t tx_data_len, uint16_t tx_id) {
 void pdm_can_rx(uint8_t rx_data[], uint8_t rx_data_len, uint16_t rx_id) {
     switch (rx_id) {
     // Handler based on rx_id
-    case FAN_RECEIVE: // ENUM Declared in pdm_can.h
+    case FAN_CMD: // ENUM Declared in pdm_can.h
         pdm_fan_can_callback_recv(rx_data, rx_data_len);
         break;
     case HAWKDRIVE_CAN_PCM_HSD_COMMAND_FRAME_ID:

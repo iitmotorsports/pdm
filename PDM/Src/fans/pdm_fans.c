@@ -40,21 +40,21 @@ VOID pdm_fans_tx_speed_thread_entry(ULONG thread_input) {
     // On each controller enable push_pull to match how our fan controllers are
     // configured
     ctrler_1.set_push_pull(&ctrler_1, true);
-    // ctrler_2.set_push_pull(&ctrler_2, true);
-    // // On each fan
-    // for (uint8_t i = 0; i < NUM_FANS; i++) {
-    //     // Enable FSC mode to control the fan through RPM
-    //     ctrler_1.set_fsc(&ctrler_1, true, i + 1);
-    //     ctrler_2.set_fsc(&ctrler_2, true, i + 1);
-    // }
+    ctrler_2.set_push_pull(&ctrler_2, true);
+    // On each fan
+    for (uint8_t i = 0; i < NUM_FANS; i++) {
+        // Enable FSC mode to control the fan through RPM
+        ctrler_1.set_fsc(&ctrler_1, true, i + 1);
+        ctrler_2.set_fsc(&ctrler_2, true, i + 1);
+    }
     while (1) {
-        // pdm_fan_update();
-        // tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND /
-        //                 4); // Sleep to let fan_speeds update
-        // can_frame_t fan_speed_frame = {{0}, 8, 0x01};
-        // // fan_speeds's size is explicitly 6 so should be okay
-        // memcpy(fan_speed_frame.data, fan_speeds, sizeof(fan_speeds));
-        // tx_queue_send(&can_tx_queue, &fan_speed_frame, TX_NO_WAIT);
+        pdm_fan_update();
+        tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND /
+                        4); // Sleep to let fan_speeds update
+        can_frame_t fan_speed_frame = {{0}, 8, FAN_STATUS};
+        // fan_speeds's size is explicitly 6 so should be okay
+        memcpy(fan_speed_frame.data, fan_speeds, sizeof(fan_speeds));
+        tx_queue_send(&can_tx_queue, &fan_speed_frame, TX_NO_WAIT);
         tx_thread_sleep(TX_TIMER_TICKS_PER_SECOND * 3 / 4);
     }
 }

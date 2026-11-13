@@ -51,11 +51,6 @@ UINT pdm_threads_create(TX_BYTE_POOL *byte_pool) {
         return status;
     }
 
-    // status = pdm_fans_tx_speed_create(byte_pool);
-    // if (status != TX_SUCCESS) {
-    //     return status;
-    // }
-
     status = pdm_fans_tx_speed_create(byte_pool);
 
     return status;

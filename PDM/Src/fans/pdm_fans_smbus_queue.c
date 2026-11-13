@@ -54,7 +54,7 @@ VOID pdm_smbus_queue_thread_entry(ULONG thread_input) {
             tx_thread_sleep(1);
         }
         if (elapsed >= TIMEOUT) {
-            can_frame_t error_can = {{'s', 'm', 'b', ' ', 'e', 'r', 'r'}, 7, 0x44};
+            can_frame_t error_can = {{'s', 'm', 'b', ' ', 'e', 'r', 'r'}, 7, SMBUS_MISC};
             tx_queue_send(&can_tx_queue, &error_can, TX_NO_WAIT);
             continue;
         }
@@ -88,7 +88,7 @@ VOID pdm_smbus_queue_thread_entry(ULONG thread_input) {
             default:
                 // Log any unimplemented
                 {
-                    can_frame_t smbus_response = {{0}, 8, 0x044};
+                    can_frame_t smbus_response = {{0}, 8, SMBUS_MISC};
                     smbus_response.data[0] = smbus_cmd.controller_addr;
                     smbus_response.data[1] = smbus_cmd.command.cmnd_code;
                     smbus_response.data[2] = result;
