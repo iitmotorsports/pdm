@@ -1,4 +1,6 @@
 #include "fans/pdm_fans_smbus_queue.h"
+#include "fans/pdm_fans.h"
+#include "pdm.h"
 
 #define PDM_SMBUS_QUEUE_STACK_SIZE 2048
 #define PDM_SMBUS_QUEUE_PRIORITY 20
@@ -52,7 +54,9 @@ VOID pdm_smbus_queue_thread_entry(ULONG thread_input) {
             tx_thread_sleep(1);
         }
         if (elapsed >= TIMEOUT) {
-            Error_Handler(); // TODO: SMBUS never recieved a response
+            can_frame_t error_can = {{'s', 'm', 'b', ' ', 'e', 'r', 'r'}, 7, 0x44};
+            tx_queue_send(&can_tx_queue, &error_can, TX_NO_WAIT);
+            continue;
         }
         if (!smbus_cmd.write) {
             const uint8_t result = piobuf[0];
