@@ -5,7 +5,8 @@
     ".gitattributes": "f70d755466b101646b043fe3c62c4f8a39eae827c1a2a303a2d39ccd93f534f8",
     ".github/PULL_REQUEST_TEMPLATE.md": "34cc607aa756b576c30ff55bd431259ddb6d4eb48b601ed6b2efc9164c4c1ba1",
     ".github/workflows/cpp-linter.yml": "f6ad63fed773fa20f928fe03a8a7854c4a83cece35fb721171e8259785c438bc",
-    ".pre-commit-config.yaml": "c7589d4db89f7c6c4117759c3949efd5fd299129c81951a8021a5949a0e6101c"
+    ".pre-commit-config.yaml": "c7589d4db89f7c6c4117759c3949efd5fd299129c81951a8021a5949a0e6101c",
+    "flake.nix": "06a1483116d54934a640ff0964db1bcfa36ce5c0f8dd88c40adff97b2e34f393"
   },
-  "tag_name": "0.2.6"
+  "tag_name": "0.2.8"
 }
